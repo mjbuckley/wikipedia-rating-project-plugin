@@ -140,7 +140,7 @@ add_action( 'init', 'wrp_create_taxonomies', 0 );
 
 
 
-// Add custom meta box for lastrevid
+// Add custom meta box adding review info
 add_action( 'add_meta_boxes', 'wrp_add_meta_boxes' );
 function wrp_add_meta_boxes() {
  add_meta_box(
@@ -153,10 +153,10 @@ function wrp_add_meta_boxes() {
 }
 
 // Display code for adding review info (title, rating, lastrevid)
-// Change wrp_rating label/name
 function wrp_create_wiki_rating_metabox( $post ) { ?>
-  <?php // add nonce for security, below works but is temporary
-  wp_nonce_field( 'wrp_metabox_nonce', 'wrp_nonce' ); ?>
+  <?php
+  // add nonce for security
+  wp_nonce_field( 'wrp_meta_box', 'wrp_meta_box_nonce' ); ?>
 
   <!-- get_the_terms() returns false if post doesn't exists or doesn't contain the term, otherwise returns an array of term objects.
   There should only be one title, but array pop ensures this. -->
@@ -165,9 +165,9 @@ function wrp_create_wiki_rating_metabox( $post ) { ?>
       $saved_titles = get_the_terms( $post->ID, 'wiki_title');
       $saved_title = $saved_titles ? array_pop($saved_titles) : false;
     ?>
-    <label for="test">Wikipedia Article Title</label>
+    <label for="meta_box_titile">Wikipedia Article Title</label>
     <br />
-    <input type="text" name="wiki_title" value="<?php if ($saved_title){echo $saved_title->name;} ?>" />
+    <input type="text" name="wiki_title" id="meta_box_title" value="<?php if ($saved_title){echo esc_attr( $saved_title->name );} ?>" />
   </div>
 
 
@@ -176,14 +176,14 @@ function wrp_create_wiki_rating_metabox( $post ) { ?>
     not exist, then an empty string will be returned. -->
   <div>
     <?php $saved_lastrevid = get_post_meta( $post->ID, 'lastrevid', true ); ?>
-    <label for="test2">Lastrevid (leave blank to grab current)</label>
+    <label for="meta_box_lastrevid">Lastrevid (leave blank to grab current)</label>
     <br />
-    <input type="text" name="lastrevid" value="<?php echo $saved_lastrevid ?>" />
+    <input type="text" name="lastrevid" id="meta_box_lastrevid" value="<?php echo esc_attr( $saved_lastrevid ); ?>" />
   </div>
 
   <div>
-    <label for="wrp_rating">Rating</label>
-    <select name="wrp_rating">
+    <label for="meta_box_rating">Rating</label>
+    <select name="wiki_rating" id="meta_box_rating">
   </div>
   <?php
     // hide_empty set to 0 ensures that ratings are shown even if they haven't been used yet.
@@ -191,7 +191,7 @@ function wrp_create_wiki_rating_metabox( $post ) { ?>
 
     foreach($rating_terms as $rating_term) { ?>
 
-      <option value="<?php echo $rating_term->name; ?>"<?php if ( has_term($rating_term->name, 'wiki_rating') ){echo " selected";} ?>><?php echo $rating_term->name; ?></option>
+      <option value="<?php echo esc_attr( $rating_term->name ); ?>"<?php if ( has_term($rating_term->name, 'wiki_rating') ){echo " selected";} ?>><?php echo esc_html( $rating_term->name ); ?></option>
       <?php
     }
   ?>
@@ -203,19 +203,39 @@ function wrp_create_wiki_rating_metabox( $post ) { ?>
 // save the meta box data
 add_action( 'save_post','wrp_save_rating' );
 function wrp_save_rating( $post_id ) {
-  // if( !isset( $_POST['wrp_metabox_nonce'] ) || !wp_verify_nonce( $_POST['wrp_nonce'], 'wrp_metabox_nonce' ) ) return;
-  if ( isset( $_POST['wrp_rating'] ) ) {
-    $new_rating_value = $_POST['wrp_rating'];
+
+  // Check if our nonce is set and valid
+  if( !isset( $_POST['wrp_meta_box_nonce'] ) || !wp_verify_nonce( $_POST['wrp_meta_box_nonce'], 'wrp_meta_box' ) ) return;
+
+  // If this is an autosave, our form has not been submitted, so we don't want to do anything.
+  if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+    return;
+  }
+
+  // Check the user's permissions.
+  if ( isset( $_POST['post_type'] ) && 'page' == $_POST['post_type'] ) {
+    if ( ! current_user_can( 'edit_page', $post_id ) ) {
+      return;
+    }
+  } else {
+    if ( ! current_user_can( 'edit_post', $post_id ) ) {
+      return;
+    }
+  }
+
+  // Find current values, if they exist, and then see if they have changed, and if so, then save.
+  if ( isset( $_POST['wiki_rating'] ) ) {
+    $new_rating_value = sanitize_text_field( $_POST['wiki_rating'] );
     wp_set_object_terms( $post_id, $new_rating_value, 'wiki_rating' );
   }
 
   if ( isset( $_POST['wiki_title'] ) ) {
-    $new_title_value = $_POST['wiki_title'];
+    $new_title_value = sanitize_text_field( $_POST['wiki_title'] );
     wp_set_object_terms( $post_id, $new_title_value, 'wiki_title' );
   }
 
   if ( isset( $_POST['lastrevid'])) {
-    $new_lastrevid = $_POST['lastrevid'];
+    $new_lastrevid = sanitize_text_field( $_POST['lastrevid'] );
     update_post_meta( $post_id ,'lastrevid' , $new_lastrevid );
   }
 }
