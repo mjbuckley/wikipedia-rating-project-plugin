@@ -74,7 +74,7 @@ function wrp_create_taxonomies() {
   'meta_box_cb' => false,
   'labels' => $labels,
   'query_var' => true,
-  'rewrite' => true,
+  'rewrite' => array( 'slug' => 'titles' ),
   'show_admin_column' => true,
   ) 
  );
@@ -99,7 +99,7 @@ function wrp_create_taxonomies() {
   'meta_box_cb' => false,
   'labels' => $labels,
   'query_var' => true,
-  'rewrite' => true,
+  'rewrite' => array( 'slug' => 'ratings' ),
   'show_admin_column' => true,
   ) 
  );
@@ -123,7 +123,7 @@ function wrp_create_taxonomies() {
   'hierarchical' => false,
   'labels' => $labels,
   'query_var' => true,
-  'rewrite' => true,
+  'rewrite' => array( 'slug' => 'disciplines' ),
   'show_admin_column' => true,
   )
  );
@@ -184,20 +184,17 @@ function wrp_create_wiki_rating_metabox( $post ) { ?>
   <div>
     <label for="meta_box_rating">Rating</label>
     <select name="wiki_rating" id="meta_box_rating">
-  </div>
-  <?php
+    <?php
     // hide_empty set to 0 ensures that ratings are shown even if they haven't been used yet.
     $rating_terms = get_terms( 'wiki_rating', array( 'hide_empty' => 0 ) );
 
     foreach($rating_terms as $rating_term) { ?>
 
-      <option value="<?php echo esc_attr( $rating_term->name ); ?>"<?php if ( has_term($rating_term->name, 'wiki_rating') ){echo " selected";} ?>><?php echo esc_html( $rating_term->name ); ?></option>
-      <?php
-    }
-  ?>
-  </select>
-  <?php
-}
+    <option value="<?php echo esc_attr( $rating_term->name ); ?>"<?php if ( has_term($rating_term->name, 'wiki_rating') ){echo " selected";} ?>><?php echo esc_html( $rating_term->name ); ?></option>
+    <?php } ?>
+    </select>
+  </div>
+  <?php }
 
 
 // save the meta box data
