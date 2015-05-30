@@ -14,6 +14,10 @@ GPLv2 info goes here.
 */
 
 
+// NOTES:
+// ADD An uninstall option to the plugin.
+
+
 // Register custom post type for reviews
 function wrp_review_create_post_type() {
  $labels = array( 
@@ -43,6 +47,7 @@ function wrp_review_create_post_type() {
     'wiki_title',
     'wiki_rating',
     'wiki_disciplines',
+    'wiki_pageid',
   ), 
  );
  register_post_type( 'wrp_review', $args );
@@ -54,6 +59,7 @@ add_action( 'init', 'wrp_review_create_post_type' );
 
 // Register custom taxonomies
 function wrp_create_taxonomies() {
+
  // wiki_title taxonomy
  $labels = array(
   'name' => 'Wikipedia Article Title',
@@ -128,7 +134,10 @@ function wrp_create_taxonomies() {
   )
  );
 
-// Prepopulate wiki_rating taxonomy with rating terms.
+  // wiki_pageid taxonomy (set to private, for possible future internal use, will be added in background, not by user)
+  register_taxonomy( 'wiki_pageid', 'wrp_review', array( 'public' => false, 'rewrite' => false ) );
+
+  // Prepopulate wiki_rating taxonomy with rating terms.
   wp_insert_term('A', 'wiki_rating');
   wp_insert_term('B', 'wiki_rating');
   wp_insert_term('C', 'wiki_rating');
@@ -220,10 +229,26 @@ function wrp_save_rating( $post_id ) {
     }
   }
 
-  // Find current values, if they exist, and then see if they have changed, and if so, then save.
+  // Do the save.
+  // To Do: Find current values and only run save if values have changed.
+  // Integrate the wikipedia api check.
+  // Make sure all required fields are filled in.
   if ( isset( $_POST['wiki_rating'] ) ) {
     $new_rating_value = sanitize_text_field( $_POST['wiki_rating'] );
-    wp_set_object_terms( $post_id, $new_rating_value, 'wiki_rating' );
+
+    // Code below checks if wiki_title currently exists, and if it does then checks if it matches the new title.
+    // Only saves if current title doesn't exist or doesn't match.  This matters once the wikipedia api is run,
+    // because we don't want it running unneccesarily.
+    $pre_old_rating_value = get_the_terms( $post_id, 'wiki_title');
+    if ($pre_old_rating_value) {
+      $old_rating_value = array_pop($pre_old_rating_value);
+      $current_title = $old_rating_value->name;
+    } else {
+      $current_title = false;
+    }
+    if ($current_title !== $new_rating_value) {
+      wp_set_object_terms( $post_id, $new_rating_value, 'wiki_rating' );
+    }
   }
 
   if ( isset( $_POST['wiki_title'] ) ) {
