@@ -20,37 +20,37 @@ GPLv2 info goes here.
 
 // Register custom post type for reviews
 function wrp_review_create_post_type() {
- $labels = array( 
-  'name' => 'Reviews',
-  'singular_name' => 'Review',
-  'add_new' => 'New Review',
-  'add_new_item' => 'Add New Review',
-  'edit_item' => 'Edit Review',
-  'new_item' => 'New Review',
-  'view_item' => 'View Review',
-  'search_items' => 'Search Reviews',
-  'not_found' =>  'No Reviews Found',
-  'not_found_in_trash' => 'No Reviews Found In Trash',
- );
- $args = array(
-  'labels' => $labels,
-  'has_archive' => true,
-  'public' => true,
-  'query_var' => 'wiki_reviews',
-  'rewrite' => array( 'slug' => 'reviews', ),
-  'supports' => array(
-    'editor',
-    'author',
-    'revisions',
-  ),
-  'taxonomies' => array(
-    'wiki_title',
-    'wiki_rating',
-    'wiki_disciplines',
-    'wiki_pageid',
-  ), 
- );
- register_post_type( 'wrp_review', $args );
+  $labels = array( 
+    'name' => 'Reviews',
+    'singular_name' => 'Review',
+    'add_new' => 'New Review',
+    'add_new_item' => 'Add New Review',
+    'edit_item' => 'Edit Review',
+    'new_item' => 'New Review',
+    'view_item' => 'View Review',
+    'search_items' => 'Search Reviews',
+    'not_found' =>  'No Reviews Found',
+    'not_found_in_trash' => 'No Reviews Found In Trash',
+  );
+  $args = array(
+    'labels' => $labels,
+    'has_archive' => true,
+    'public' => true,
+    'query_var' => 'wiki_reviews',
+    'rewrite' => array( 'slug' => 'reviews', ),
+    'supports' => array(
+      'editor',
+      'author',
+      'revisions',
+    ),
+    'taxonomies' => array(
+      'wiki_title',
+      'wiki_rating',
+      'wiki_disciplines',
+      'wiki_pageid',
+    ), 
+  );
+  register_post_type( 'wrp_review', $args );
 } 
 
 add_action( 'init', 'wrp_review_create_post_type' );
@@ -60,91 +60,91 @@ add_action( 'init', 'wrp_review_create_post_type' );
 // Register custom taxonomies
 function wrp_create_taxonomies() {
 
- // wiki_title taxonomy
- $labels = array(
-  'name' => 'Wikipedia Article Title',
-  'singular_name' => 'Wikipedia Article Title',
-  'search_items' => 'Search Wikipedia Article Titles',
-  'all_items' => 'All Wikipedia Article Titles',
-  'parent_item' => 'Parent Wikipedia Article Title',
-  'parent_item_colon' => 'Parent Wikipedia Article Title:',
-  'edit_item'  => 'Edit Wikipedia Article Title', 
-  'update_item' => 'Update Wikipedia Article Title',
-  'add_new_item' => 'Add New Wikipedia Article Title',
-  'new_item_name' => 'New Wikipedia Article Title',
-  'separate_items_with_commas' => 'Separate titles with commas',
-  'menu_name' => 'Wikipedia Article Title',
- );
- register_taxonomy( 'wiki_title', 'wrp_review', array(
-  'hierarchical' => false,
-  'meta_box_cb' => false,
-  'labels' => $labels,
-  'query_var' => true,
-  'rewrite' => array( 'slug' => 'titles' ),
-  'show_admin_column' => true,
-  ) 
- );
+  // wiki_title taxonomy
+  $labels = array(
+    'name' => 'Wikipedia Article Title',
+    'singular_name' => 'Wikipedia Article Title',
+    'search_items' => 'Search Wikipedia Article Titles',
+    'all_items' => 'All Wikipedia Article Titles',
+    'parent_item' => 'Parent Wikipedia Article Title',
+    'parent_item_colon' => 'Parent Wikipedia Article Title:',
+    'edit_item'  => 'Edit Wikipedia Article Title', 
+    'update_item' => 'Update Wikipedia Article Title',
+    'add_new_item' => 'Add New Wikipedia Article Title',
+    'new_item_name' => 'New Wikipedia Article Title',
+    'separate_items_with_commas' => 'Separate titles with commas',
+    'menu_name' => 'Wikipedia Article Title',
+  );
+  register_taxonomy( 'wiki_title', 'wrp_review', array(
+    'hierarchical' => false,
+    'meta_box_cb' => false,
+    'labels' => $labels,
+    'query_var' => true,
+    'rewrite' => array( 'slug' => 'titles' ),
+    'show_admin_column' => true,
+    )
+  );
 
- // wiki_rating taxonomy
- $labels = array(
-  'name' => 'Rating',
-  'singular_name' => 'Rating',
-  'search_items' => 'Search Ratings',
-  'all_items' => 'All Ratings',
-  'parent_item' => 'Parent Rating',
-  'parent_item_colon' => 'Parent Rating:',
-  'edit_item'  => 'Edit Rating', 
-  'update_item' => 'Update Rating',
-  'add_new_item' => 'Add New Rating',
-  'new_item_name' => 'New Rating',
-  'separate_items_with_commas' => 'Separate ratings with commas',
-  'menu_name' => 'Rating',
- );
- register_taxonomy( 'wiki_rating', 'wrp_review', array(
-  'hierarchical' => false,
-  'meta_box_cb' => false,
-  'labels' => $labels,
-  'query_var' => true,
-  'rewrite' => array( 'slug' => 'ratings' ),
-  'show_admin_column' => true,
-  ) 
- );
+  // wiki_rating taxonomy
+  $labels = array(
+    'name' => 'Rating',
+    'singular_name' => 'Rating',
+    'search_items' => 'Search Ratings',
+    'all_items' => 'All Ratings',
+    'parent_item' => 'Parent Rating',
+    'parent_item_colon' => 'Parent Rating:',
+    'edit_item'  => 'Edit Rating', 
+    'update_item' => 'Update Rating',
+    'add_new_item' => 'Add New Rating',
+    'new_item_name' => 'New Rating',
+    'separate_items_with_commas' => 'Separate ratings with commas',
+    'menu_name' => 'Rating',
+  );
+  register_taxonomy( 'wiki_rating', 'wrp_review', array(
+    'hierarchical' => false,
+    'meta_box_cb' => false,
+    'labels' => $labels,
+    'query_var' => true,
+    'rewrite' => array( 'slug' => 'ratings' ),
+    'show_admin_column' => true,
+    ) 
+  );
 
   // wiki_disciplines taxonomy
- $labels = array(
-  'name' => 'Disciplines',
-  'singular_name' => 'Discipline',
-  'search_items' => 'Search Disciplines',
-  'all_items' => 'All Disciplines',
-  'parent_item' => 'Parent Discipline',
-  'parent_item_colon' => 'Parent Discipline:',
-  'edit_item'  => 'Edit Discipline', 
-  'update_item' => 'Update Discipline',
-  'add_new_item' => 'Add New Discipline',
-  'new_item_name' => 'New Discipline',
-  'separate_items_with_commas' => 'Separate Disciplines with commas',
-  'menu_name' => 'Disciplines',
- );
- register_taxonomy( 'wiki_disciplines', 'wrp_review', array(
-  'hierarchical' => false,
-  'labels' => $labels,
-  'query_var' => true,
-  'rewrite' => array( 'slug' => 'disciplines' ),
-  'show_admin_column' => true,
-  )
- );
+  $labels = array(
+    'name' => 'Disciplines',
+    'singular_name' => 'Discipline',
+    'search_items' => 'Search Disciplines',
+    'all_items' => 'All Disciplines',
+    'parent_item' => 'Parent Discipline',
+    'parent_item_colon' => 'Parent Discipline:',
+    'edit_item'  => 'Edit Discipline', 
+    'update_item' => 'Update Discipline',
+    'add_new_item' => 'Add New Discipline',
+    'new_item_name' => 'New Discipline',
+    'separate_items_with_commas' => 'Separate Disciplines with commas',
+    'menu_name' => 'Disciplines',
+  );
+  register_taxonomy( 'wiki_disciplines', 'wrp_review', array(
+    'hierarchical' => false,
+    'labels' => $labels,
+    'query_var' => true,
+    'rewrite' => array( 'slug' => 'disciplines' ),
+    'show_admin_column' => true,
+    )
+  );
 
   // wiki_pageid taxonomy (set to private, for possible future internal use, will be added in background, not by user)
   register_taxonomy(
-        'wiki_pageid',
-        'wrp_review',
-        array(
-            'label' => 'wiki_pageid',
-            'public' => false,
-            'rewrite' => false,
-            'hierarchical' => false,
-        )
-    );
+  'wiki_pageid',
+  'wrp_review',
+  array(
+    'label' => 'wiki_pageid',
+    'public' => false,
+    'rewrite' => false,
+    'hierarchical' => false,
+    )
+  );
 
   // Prepopulate wiki_rating taxonomy with rating terms.
   wp_insert_term('A', 'wiki_rating');
@@ -161,13 +161,14 @@ add_action( 'init', 'wrp_create_taxonomies', 0 );
 // Add custom meta box adding review info
 add_action( 'add_meta_boxes', 'wrp_add_meta_boxes' );
 function wrp_add_meta_boxes() {
- add_meta_box(
-  'wrp_wiki_rating_metabox',
-  'Wikipedia Article Information:',
-  'wrp_create_wiki_rating_metabox',
-  'wrp_review',
-  'normal',
-  'high' );
+  add_meta_box(
+    'wrp_wiki_rating_metabox',
+    'Wikipedia Article Information:',
+    'wrp_create_wiki_rating_metabox',
+    'wrp_review',
+    'normal',
+    'high'
+  );
 }
 
 // Display code for adding review info (title, rating, lastrevid)
@@ -215,22 +216,90 @@ function wrp_create_wiki_rating_metabox( $post ) {
 <?php }
 
 
-// Admin notice functions.  NEEDS TO BE IMPROVED.  This is just here to make sure they work.
+// Admin notice functions.
+
+add_action( 'admin_notices', 'my_notices' );
+
+// Checks for presence of custom message and displays according
+function my_notices() {
+  if ( ! isset( $_GET['my_message'] ) ) {
+    return;
+  } else {
+
+    //sanitize this?
+    $message_value = $_GET['my_message'];
+
+    switch($message_value) {
+      case "error1":
+        $message = "There is no Wikipedia article with the title that you entered.  Please check the title and try again.";
+        break;
+      case "error2":
+        $message = "There was an error communicating with Wikipedia.  The text of your review has been saved as a draft.  Please trying submitting again later.";
+        break;
+      case "error3":
+        $message = "The lastrevid that you entered does not exist.  Please recheck the number and try again.";
+        break;
+      case "error4":
+        $message = "The title associated with the lastrevid does not match the given title";
+        break;
+      case "error5":
+        $message = "The lastrevid points to a redirect page and cannot be saved.";
+        break;
+      case "error6":
+      // Same as error2, but brought about by different situation.  Keep separate for debugging purposes.
+        $message = "There was an error communicating with Wikipedia.  The text of your review has been saved as a draft.  Please trying submitting again later.";
+        break;
+      case "error7":
+        $message = "The Wikipedia article title and/or the rating are not filled out.  Please complete those fields and try again.";
+        break;    
+      case "success1":
+        //$message = "Title has been changed from '{$test_title}' to '{$new_title}.'  Lastrevid is: {$lastrevid}.  Also, This looks like it might be a disambiguation page.";
+        $message = "temp message";
+        break;
+      case "success2":
+        //$message = "Title has been changed from '{$test_title}' to '{$new_title}.'  Lastrevid is: {$lastrevid}.";
+        $message = "temp message";
+        break;
+      case "success3":
+        //$message = "This looks like it might be a disambiguation page.  Lastrevid is: {$lastrevid}.";
+        $message = "temp message";
+        break;
+      case "success4":
+        //$message = "Lastrevid is: {$lastrevid}.";
+        $message = "temp message";
+        break;
+      case "success5":
+        //$message = "This looks like it might be a disambiguation page.  Title has been changed to from '{$test_title}' to '{$title}'.";
+        $message = "temp message";
+        break;
+      case "success6":
+        //$message = "Title has been changed from '{$test_title}' to '{$title}'.";
+        $message = "temp message";
+        break;
+      case "success7":
+        $message = "This might be a disambiguation page.";
+        break;
+      case "success8":
+        $message = "Everything's good";
+        break;
+    } // End switch     
+    ?>
+
+    <div class="updated">
+      <p><?php echo $message; ?></p>
+    </div>
+
+    <?php
+  }
+} // End my_notices()
 
 
-function wrp_admin_error_notice() { ?>
-  <div class="error">
-    <p>There was something wrong.</p>
-  </div>
-<?php
-}
+// NOTE! Do I need to (can I even in this context) escape the add_query_arg.  Important given recent security issue around this.
+// Also, adapted from found code.  Uncertain about use of $loc (but works).
 
-function wrp_admin_notice() { ?>
-  <div class="updated">
-    <p>Updated</p>
-  </div>
-<?php
-}
+// function my_message($loc) {
+//   return add_query_arg( 'my_message', 123, $loc );
+// }
 
 
 // START WRP_WIKI_TEST EVENTUALLY PUT IN INCLUDED SECTION
@@ -255,7 +324,8 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
       // Make sure that the user supplied title exists.  A $pages_value of -1 means there is no Wikipedia article with that title.
 
       if ($pages_value == -1) {
-        $message = "There is no Wikipedia article with the title that you entered.  Please check the title and try again.";
+        $message = "error1";
+        // "There is no Wikipedia article with the title that you entered.  Please check the title and try again."
         return array( 'error' => true, 'message' => $message );
       }
 
@@ -277,30 +347,35 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
         if ($disambiguation && ($redirect || $normalization)) {
           // Could be a disambiguation page.  Title changed as a result of normalization or redirect.  Save but alert user.
           $new_title = $disambiguation_test['title'];
-          $message = "Title has been changed from '{$test_title}' to '{$new_title}.'  Lastrevid is: {$lastrevid}.  Also, This looks like it might be a disambiguation page.";
+          $message = "success1";
+          // "Title has been changed from '{$test_title}' to '{$new_title}.'  Lastrevid is: {$lastrevid}.  Also, This looks like it might be a disambiguation page."
           return array( 'error' => false, 'lastrevid' => $lastrevid, 'title' => $new_title, 'pageid' => $pageid, 'message' => $message );
         }
         elseif ($redirect || $normalization) {
           // Title changed as a result of normalization or redirect.
           $new_title = $disambiguation_test['title'];
-          $message = "Title has been changed from '{$test_title}' to '{$new_title}.'  Lastrevid is: {$lastrevid}.";
+          $message = "success2";
+          // "Title has been changed from '{$test_title}' to '{$new_title}.'  Lastrevid is: {$lastrevid}."
           return array( 'error' => false, 'lastrevid' => $lastrevid, 'title' => $new_title, 'pageid' => $pageid, 'message' => $message );
         }
         elseif ($disambiguation) {
           // Could be a disambiguation page.  Save but alert user.
-          $message = "This looks like it might be a disambiguation page.  Lastrevid is: {$lastrevid}.";
+          $message = "success3";
+          // "This looks like it might be a disambiguation page.  Lastrevid is: {$lastrevid}."
           return array( 'error' => false, 'lastrevid' => $lastrevid, 'title' => $test_title, 'pageid' => $pageid, 'message' => $message );
           
         }
         else {
           // Everything checks out perfectly.
-          $message = "Lastrevid is: {$lastrevid}.";
+          $message = "success4";
+          // "Lastrevid is: {$lastrevid}."
           return array( 'error' => false, 'lastrevid' => $lastrevid, 'title' => $test_title, 'pageid' => $pageid, 'message' => $message );
         }
       }
     } else {
       // Unexpected type of response from Wikipedia API.  Prompt user to try again later.
-      $message = "There was an error communicating with Wikipedia.  The text of your review has been saved as a draft.  Please trying submitting again later.";
+      $message = "error2";
+      // "There was an error communicating with Wikipedia.  The text of your review has been saved as a draft.  Please trying submitting again later."
       return array( 'error' => true, 'message' => $message );
     }
 
@@ -321,7 +396,8 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
       // Make sure lastrevid is real.  A bad lastrevid has no "pages" key.
 
       if (!array_key_exists("pages", $query_array)) { // Lastrevid doesn't exist
-        $message = "The lastrevid that you entered does not exist.  Please recheck the number and try again.";
+        $message = "error3";
+        // "The lastrevid that you entered does not exist.  Please recheck the number and try again."
         return array( 'error' => true, 'message' => $message );
       }
 
@@ -338,14 +414,16 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
         if (strtolower($test_title) !== strtolower($title)) {
 
           // Title for the lastrevid does not equal title supplied by user
-          $message = "The title associated with the lastrevid does not match the given title";
+          $message = "error4";
+          // "The title associated with the lastrevid does not match the given title"
           return array( 'error' => true, 'message' => $message );
         }
 
         // Lastrevid points to a redirect page.  Redirect page's lastrevids do not change their lastrevid to mirror changes in their target page.
         // So there is no way to know what edit the user intends to being reviewing.
         elseif (array_key_exists("redirect", $info)) {
-          $message = "The lastrevid points to a redirect page and cannot be saved.";
+          $message = "error5";
+          // "The lastrevid points to a redirect page and cannot be saved."
           return array( 'error' => true, 'message' => $message );
         }
 
@@ -358,13 +436,15 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
 
             // Probaly a disambiguation page.  Title capitalization has been changed.  Save, but alert user.
             if (array_key_exists("categories", $info)) {
-              $message = "This looks like it might be a disambiguation page.  Title has been changed to from '{$test_title}' to '{$title}'.";
+              $message = "success5";
+              // "This looks like it might be a disambiguation page.  Title has been changed to from '{$test_title}' to '{$title}'."
               return array( 'error' => false, 'lastrevid' => $test_lastrevid, 'title' => $title, 'pageid' => $pageid, 'message' => $message );
             }
 
             // Titles differ in capitalization, but all else good.  Save, but alert user.
             else {
-              $message = "Title has been changed from '{$test_title}' to '{$title}'.";
+              $message = "success6";
+              // "Title has been changed from '{$test_title}' to '{$title}'."
               return array( 'error' => false, 'lastrevid' => $test_lastrevid, 'title' => $title, 'pageid' => $pageid, 'message' => $message );
             }
           }
@@ -374,13 +454,15 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
 
             // Probably a disambiguation page.  Save, but alert user.
             if (array_key_exists("categories", $info)) {
-              $message = "This might be a disambiguation page.";
+              $message = "success7";
+              // "This might be a disambiguation page."
               return array( 'error' => false, 'lastrevid' => $test_lastrevid, 'title' => $test_title, 'pageid' => $pageid, 'message' => $message );
             }
 
             // Everything matches up perfectly.
             else {
-              $message = "Everything's good";
+              $message = "success8";
+              // "Everything's good"
               return array( 'error' => false, 'lastrevid' => $test_lastrevid, 'title' => $test_title, 'pageid' => $pageid, 'message' => $message );
             }
           }
@@ -388,13 +470,12 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
       }
     } else {
       // Unexpected type of response from Wikipedia API.  Prompt user to try again later.
-      $message = "There was an error communicating with Wikipedia.  The text of your review has been saved as a draft.  Please trying submitting again later.";
+      $message = "error6";
+      // "There was an error communicating with Wikipedia.  The text of your review has been saved as a draft.  Please trying submitting again later."
       return array( 'error' => true, 'message' => $message );
     }
   }
-}
-
-// END OF WRP_WIKI_TEST
+} // End of wrp_wiki_test()
 
 
 // save the meta box data
@@ -455,9 +536,10 @@ function wrp_save_rating( $post_id ) {
   if ( !isset($_POST['wiki_rating']) || empty($_POST['wiki_rating']) || !isset($_POST['wiki_title']) || empty($_POST['wiki_title']) ) {
     // If true than either something is wrong with form or a required field is missing.  Return error to user.
     
-    $message = "The Wikipedia article title and/or the rating are not filled out.  Please complete those fields and try again.";
+    $message = "error7";
+    // "The Wikipedia article title and/or the rating are not filled out.  Please complete those fields and try again."
     
-    add_action( 'admin_notices', 'wrp_admin_error_notice' );
+    add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'my_message', $message, $loc ); } );
 
 
   // wiki_rating or wiki_title are not empty.  Now see if wiki_title and wiki_lastrevid have a currently saved value.
@@ -509,7 +591,7 @@ function wrp_save_rating( $post_id ) {
         
         $message = $wiki_info['message'];
 
-        add_action( 'admin_notices', 'wrp_admin_error_notice' );
+        add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'my_message', $message, $loc ); } );
 
         // Change post status to draft in case of validation failure
         global $wpdb;
@@ -542,7 +624,10 @@ function wrp_save_rating( $post_id ) {
         // Pass along message to user
         $message = $wiki_info['message'];
         
-        add_action( 'admin_notices', 'wrp_admin_notice' );
+        // add_filter('redirect_post_location', 'my_message');
+
+        // Uses anonymous function to pass $message to add_query_arg
+        add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'my_message', $message, $loc ); } );
       }
 
 
@@ -551,6 +636,7 @@ function wrp_save_rating( $post_id ) {
     // the review text, disciplines, rating, or by pushing the save button.  Review text and disciplines are handled by WordPress (nothing custom),
     // so go ahead and save wiki_rating.  Not bothering to check if it has changed because no real harm in unneccesarily saving
     // unchanged rating again and is simpler this way.
+    // ADD UPDATE MESSAGE?
       $new_rating_value = sanitize_text_field( $_POST['wiki_rating'] );
       wp_set_object_terms( $post_id, $new_rating_value, 'wiki_rating' );
     }
