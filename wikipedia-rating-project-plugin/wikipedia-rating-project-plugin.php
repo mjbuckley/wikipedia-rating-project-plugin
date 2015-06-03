@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: Wikipedia Review Plugin
+Plugin Name: Wikipedia Rating Project Plugin
 Plugin URI:
 Description: A plugin to rate Wikipedia pages in WordPress.
 Version: 0.1
@@ -159,7 +159,6 @@ add_action( 'init', 'wrp_create_taxonomies', 0 );
 
 
 // Add custom meta box adding review info
-add_action( 'add_meta_boxes', 'wrp_add_meta_boxes' );
 function wrp_add_meta_boxes() {
   add_meta_box(
     'wrp_wiki_rating_metabox',
@@ -171,7 +170,11 @@ function wrp_add_meta_boxes() {
   );
 }
 
-// Display code for adding review info (title, rating, lastrevid)
+add_action( 'add_meta_boxes', 'wrp_add_meta_boxes' );
+
+
+
+// Display code for meta box in admin screen
 function wrp_create_wiki_rating_metabox( $post ) {
   
   // add nonce for security
@@ -216,11 +219,13 @@ function wrp_create_wiki_rating_metabox( $post ) {
 <?php }
 
 
+
 // Admin notice functions.
 
 add_action( 'admin_notices', 'my_notices' );
 
-// Checks for presence of custom message and displays according
+// Checks for presence of custom admin message and displays it
+// Consider changing switch statement to an array?
 function my_notices() {
   if ( ! isset( $_GET['my_message'] ) ) {
     return;
@@ -229,64 +234,88 @@ function my_notices() {
     //sanitize this?
     $message_value = $_GET['my_message'];
 
+    $message_check = "success";
+
+    if (strpos($message_value, $message_check) !== false) {
+      $title = get_the_title();
+      $encode_title = rawurlencode($title);
+      $lastrevid = get_post_meta( get_the_ID(), 'lastrevid', true );
+      $lastrevid_link = 'http://en.wikipedia.org/w/index.php?title=' . $encode_title . '&oldid=' . $lastrevid;
+    }
+
     switch($message_value) {
       case "error1":
         $message = "There is no Wikipedia article with the title that you entered.  Please check the title and try again.";
+        $class = "error";
         break;
       case "error2":
         $message = "There was an error communicating with Wikipedia.  The text of your review has been saved as a draft.  Please trying submitting again later.";
+        $class = "error";
         break;
       case "error3":
         $message = "The lastrevid that you entered does not exist.  Please recheck the number and try again.";
+        $class = "error";
         break;
       case "error4":
         $message = "The title associated with the lastrevid does not match the given title";
+        $class = "error";
         break;
       case "error5":
         $message = "The lastrevid points to a redirect page and cannot be saved.";
+        $class = "error";
         break;
       case "error6":
       // Same as error2, but brought about by different situation.  Keep separate for debugging purposes.
         $message = "There was an error communicating with Wikipedia.  The text of your review has been saved as a draft.  Please trying submitting again later.";
+        $class = "error";
         break;
       case "error7":
         $message = "The Wikipedia article title and/or the rating are not filled out.  Please complete those fields and try again.";
+        $class = "error";
         break;    
       case "success1":
-        //$message = "Title has been changed from '{$test_title}' to '{$new_title}.'  Lastrevid is: {$lastrevid}.  Also, This looks like it might be a disambiguation page.";
-        $message = "temp message";
+        $message = "Title has been changed to '{$title}.'  Lastrevid is: {$lastrevid}.  Also, This looks like it might be a disambiguation page.";
+        //$message = "temp message";
+        $class = "updated";
         break;
       case "success2":
-        //$message = "Title has been changed from '{$test_title}' to '{$new_title}.'  Lastrevid is: {$lastrevid}.";
-        $message = "temp message";
+        $message = "Title has been changed to '{$title}.'  Lastrevid is: {$lastrevid}.";
+        //$message = "temp message";
+        $class = "updated";
         break;
       case "success3":
-        //$message = "This looks like it might be a disambiguation page.  Lastrevid is: {$lastrevid}.";
-        $message = "temp message";
+        $message = "This looks like it might be a disambiguation page.  Lastrevid is: {$lastrevid}.";
+        //$message = "temp message";
+        $class = "updated";
         break;
       case "success4":
-        //$message = "Lastrevid is: {$lastrevid}.";
-        $message = "temp message";
+        $message = "Lastrevid is: {$lastrevid}.";
+        //$message = "temp message";
+        $class = "updated";
         break;
       case "success5":
-        //$message = "This looks like it might be a disambiguation page.  Title has been changed to from '{$test_title}' to '{$title}'.";
-        $message = "temp message";
+        $message = "This looks like it might be a disambiguation page.  Title has been changed to '{$title}'.";
+        //$message = "temp message";
+        $class = "updated";
         break;
       case "success6":
-        //$message = "Title has been changed from '{$test_title}' to '{$title}'.";
-        $message = "temp message";
+        $message = "Title has been changed to '{$title}'.";
+        //$message = "temp message";
+        $class = "updated";
         break;
       case "success7":
         $message = "This might be a disambiguation page.";
+        $class = "updated";
         break;
       case "success8":
         $message = "Everything's good";
+        $class = "updated";
         break;
     } // End switch     
     ?>
 
-    <div class="updated">
-      <p><?php echo $message; ?></p>
+    <div class="<?php echo $class ?>">
+      <p><?php echo $message ?></p>
     </div>
 
     <?php
@@ -540,6 +569,8 @@ function wrp_save_rating( $post_id ) {
     // "The Wikipedia article title and/or the rating are not filled out.  Please complete those fields and try again."
     
     add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'my_message', $message, $loc ); } );
+
+    // NEED TO DO ROLLBACK OF POST TO DRAFT HERE TOO
 
 
   // wiki_rating or wiki_title are not empty.  Now see if wiki_title and wiki_lastrevid have a currently saved value.
