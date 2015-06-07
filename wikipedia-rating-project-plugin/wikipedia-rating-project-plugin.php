@@ -15,7 +15,25 @@ GPLv2 info goes here.
 
 
 // NOTES:
+
 // ADD An uninstall option to the plugin.
+
+// wp_unique_post_slug doesn't do a uniqueness check if post status is pending.  I can probably override this, but figure it out.
+
+// Improve error/success messages.  Remove default WP message where needed.
+
+// NOTE: false is the same as an empty string.  Remember this when testing for things and setting variable to false.
+
+// way to include files: include( plugin_dir_path(__FILE__) . '/includes/wrp_wiki_test.php' );
+
+// Better understand user o query_var/figure out pagination (probably related topics)
+
+// Work on disciplines
+
+// Do we really want to support revisions?
+
+// I believe sanitize_title() is the right choice for clening title for post_name, but consider sanitize_title_with_dashes()
+// if something doesn't work properly.
 
 
 // Register custom post type for reviews
@@ -275,32 +293,26 @@ function my_notices() {
         break;    
       case "success1":
         $message = "Title has been changed to '{$title}.'  Lastrevid is: {$lastrevid}.  Also, This looks like it might be a disambiguation page.";
-        //$message = "temp message";
         $class = "updated";
         break;
       case "success2":
         $message = "Title has been changed to '{$title}.'  Lastrevid is: {$lastrevid}.";
-        //$message = "temp message";
         $class = "updated";
         break;
       case "success3":
         $message = "This looks like it might be a disambiguation page.  Lastrevid is: {$lastrevid}.";
-        //$message = "temp message";
         $class = "updated";
         break;
       case "success4":
         $message = "Lastrevid is: {$lastrevid}.";
-        //$message = "temp message";
         $class = "updated";
         break;
       case "success5":
         $message = "This looks like it might be a disambiguation page.  Title has been changed to '{$title}'.";
-        //$message = "temp message";
         $class = "updated";
         break;
       case "success6":
         $message = "Title has been changed to '{$title}'.";
-        //$message = "temp message";
         $class = "updated";
         break;
       case "success7":
@@ -316,6 +328,9 @@ function my_notices() {
 
     <div class="<?php echo $class ?>">
       <p><?php echo $message ?></p>
+      <?php if( $class === 'updated' ) { ?>
+        <p><a href="<?php echo $lastrevid_link; ?>">Link to Wikipedia page</a></p>
+      <?php } // end if ?>
     </div>
 
     <?php
@@ -331,7 +346,7 @@ function my_notices() {
 // }
 
 
-// START WRP_WIKI_TEST EVENTUALLY PUT IN INCLUDED SECTION
+// START WRP_WIKI_TEST: EVENTUALLY MOVE TO INCLUDE FOLDER
 
 function wrp_wiki_test( $test_title, $test_lastrevid ) {
 
@@ -343,7 +358,7 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
     $encode_title = rawurlencode($test_title);
     $title_url = $title_base . $encode_title . $title_ending; // Wikipedia API request
     $title_response = wp_remote_get($title_url); // Raw response from Wikipedia API
-    if( is_array($title_response) ) {  // Verify response is in form we expect
+    if( is_array($title_response) && !is_wp_error($title_response) ) {  // Verify response is in form we expect and not WP Error
       $body = $title_response['body']; // Strip response header
       $title_decoded = json_decode($body, true); // Convert to a PHP useable JSON form
       $pre_info = $title_decoded["query"]["pages"];
@@ -402,7 +417,7 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
         }
       }
     } else {
-      // Unexpected type of response from Wikipedia API.  Prompt user to try again later.
+      // WP Error or an unexpected type of response from Wikipedia API.  Prompt user to try again later.
       $message = "error2";
       // "There was an error communicating with Wikipedia.  The text of your review has been saved as a draft.  Please trying submitting again later."
       return array( 'error' => true, 'message' => $message );
@@ -417,7 +432,7 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
     $encode_lastrevid = rawurlencode($test_lastrevid);
     $lastrevid_url = $lastrevid_base . $encode_lastrevid . $lastrevid_ending;
     $lastrevid_response = wp_remote_get($lastrevid_url);
-    if( is_array($lastrevid_response) ) {  // Verify response is in form we expect
+    if( is_array($lastrevid_response) && !is_wp_error($title_response) ) {  // Verify response is in form we expect and not WP Error
       $body = $lastrevid_response['body']; // Strip response header
       $lastrevid_decoded = json_decode($body, true); // Convert to a PHP useable JSON form
       $query_array = $lastrevid_decoded["query"];
@@ -498,13 +513,15 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
         }
       }
     } else {
-      // Unexpected type of response from Wikipedia API.  Prompt user to try again later.
+      // WP Error or unexpected type of response from Wikipedia API.  Prompt user to try again later.
       $message = "error6";
       // "There was an error communicating with Wikipedia.  The text of your review has been saved as a draft.  Please trying submitting again later."
       return array( 'error' => true, 'message' => $message );
     }
   }
-} // End of wrp_wiki_test()
+}
+
+// End WRP_WIKI_TEST: EVENTUALLY MOVE TO INCLUDE FOLDER
 
 
 // save the meta box data
@@ -559,21 +576,21 @@ function wrp_save_rating( $post_id ) {
   }
 
 
-  // Sanity check that wiki_rating, wiki_title, and wiki_lastrevid are all part of submitted form (even if they aren't set).
-  // Make sure wiki_rating or wiki_title values on submitted form are not empty.
+  // Make sure that wiki_rating and wiki_title values on submitted form are not empty.
 
   if ( !isset($_POST['wiki_rating']) || empty($_POST['wiki_rating']) || !isset($_POST['wiki_title']) || empty($_POST['wiki_title']) ) {
-    // If true than either something is wrong with form or a required field is missing.  Return error to user.
-    
-    $message = "error7";
+
+    // Roll back post to draft status
+    global $wpdb;
+    $wpdb->update( $wpdb->posts, array("post_status" => "draft"), array("ID" => $post_id), array("%s"), array("%d") );
+
+    // Pass error message to user:
     // "The Wikipedia article title and/or the rating are not filled out.  Please complete those fields and try again."
-    
+    $message = "error7";
     add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'my_message', $message, $loc ); } );
+    
 
-    // NEED TO DO ROLLBACK OF POST TO DRAFT HERE TOO
-
-
-  // wiki_rating or wiki_title are not empty.  Now see if wiki_title and wiki_lastrevid have a currently saved value.
+  // wiki_rating or wiki_title on form are not empty.  Now see if wiki_title and wiki_lastrevid have a currently saved value.
   // Save current values to $current_title and $current_lastrevid if the values exist, otherwise set them to false.
 
   } else {
@@ -599,87 +616,79 @@ function wrp_save_rating( $post_id ) {
     $new_lastrevid = sanitize_text_field( $_POST['lastrevid'] );
 
 
-    // Use old and new values to see if wrp_wiki_test needs to be run.  It should be run if this is the initial save, or if the new values have
-    // changed from old values.  
+    // Check if this is a new review or if new values differ from saved values. If true, wrp_wiki_test() needs to be run.
 
     if (empty($new_lastrevid) || ($new_lastrevid !== $current_lastrevid) || ($new_title_value !== $current_title)) {
-      // If true, this is either a new review, or the title or lastrevid has been changed, so we need to run wrp_wiki_test.
-      
-
-
-      // include( plugin_dir_path(__FILE__) . '/includes/wrp_wiki_test.php' );
-
-
-
-
 
       $wiki_info = wrp_wiki_test( $new_title_value, $new_lastrevid );
+
       
+      // Check if there was an error with wrp_wiki_test().  If yes, change post status to draft an alert user to the errors.
 
       if ($wiki_info['error'] === true) {
-        // If error key has value of true then something is wrong with the new values.
-        // Don't save the new values.  Change post status from 'published' to 'draft'.  Alert user to the errors.
-        
-        $message = $wiki_info['message'];
 
-        add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'my_message', $message, $loc ); } );
-
-        // Change post status to draft in case of validation failure
         global $wpdb;
         $wpdb->update( $wpdb->posts, array("post_status" => "draft"), array("ID" => $post_id), array("%s"), array("%d") );
-
         
-      } else {
-        // Submitted info was basically good.  There may be some minor issues to pass on to user, but save new (possibly fixed) values.
-        // Grab values from array and then save them, pass on messages to user, save wiki_title as page title.
+        $message = $wiki_info['message'];
+        add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'my_message', $message, $loc ); } );
 
+
+      // At this point, everything is basically good.  There may be some minor issues to pass on to user, but save new (possibly fixed)
+      // values.  Additionally, save wiki_title as post_title and add post_name.
+
+      } else {
+
+        // Get values to save (page_id set to string because wp_set_object_terms treats an integer term as a tag id refernce number,
+        // not as value itself).
 
         $to_save_title = $wiki_info['title'];
         $to_save_lastrevid = $wiki_info['lastrevid'];
         $pre_to_save_pageid = $wiki_info['pageid'];
-        // page_id set to string because wp_set_object_terms treats an integer term as a tag id refernce #, not as an int itself.
         $to_save_pageid = "{$pre_to_save_pageid}";
+        $to_save_rating_value = sanitize_text_field( $_POST['wiki_rating'] ); // May not have changed, but no harm in resaving if it hasn't.
 
 
-        // Save values 
+        // Save values
         wp_set_object_terms( $post_id, $to_save_title, 'wiki_title' );
         wp_set_object_terms( $post_id, $to_save_pageid, 'wiki_pageid' );
+        wp_set_object_terms( $post_id, $to_save_rating_value, 'wiki_rating' );
         update_post_meta( $post_id ,'lastrevid' , $to_save_lastrevid );
-        $new_rating_value = sanitize_text_field( $_POST['wiki_rating'] ); // May not have changed, but no harm in resaving if it hasn't.
-        wp_set_object_terms( $post_id, $new_rating_value, 'wiki_rating' );
 
-        // Set title to same title as wiki_title
+
+        // Get addional values needed to update $post_name
+        $post_parent_check = wp_get_post_parent_id( $post_id ); // int value if exists, else false
+        //$post_parent_check = $post_parent_check ? $post_parent_check : 0; // set to 0 if false
+        $post_status_check = get_post_status( $post_id ); // Retuns false if an error
+
+
+        // Prepare title to be added as post_name.  First remove anything probelmatic, then check for other posts with same
+        // name and add a number to end of post_name if needed.
+        $sanitized_title = sanitize_title( $to_save_title );
+        $unique_slug = wp_unique_post_slug( $sanitized_title, $post_id, $post_status_check, 'wrp_review', $post_parent_check );
+
+
+        // Update post_name and post_title
         global $wpdb;
         $wpdb->update( $wpdb->posts, array("post_title" => $to_save_title), array("ID" => $post_id), array("%s"), array("%d") );
+        $wpdb->update( $wpdb->posts, array("post_name" => $unique_slug), array("ID" => $post_id), array("%s"), array("%d") );
+
 
         // Pass along message to user
         $message = $wiki_info['message'];
-        
-        // add_filter('redirect_post_location', 'my_message');
-
-        // Uses anonymous function to pass $message to add_query_arg
         add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'my_message', $message, $loc ); } );
       }
 
 
+    // wiki_title and wiki_lastrevid were not changed in the form.  Update rating.  This may be unnecceasry, but no real harm,
+    // and it simplifies the code rather than needing to do additional check.  Should be no need for a special message because
+    // the default WP post update message will be sent.
+
     } else {
-    // wiki_title and wiki_lastrevid were not changed in the form.  The save was must have been triggered by either a change in
-    // the review text, disciplines, rating, or by pushing the save button.  Review text and disciplines are handled by WordPress (nothing custom),
-    // so go ahead and save wiki_rating.  Not bothering to check if it has changed because no real harm in unneccesarily saving
-    // unchanged rating again and is simpler this way.
-    // ADD UPDATE MESSAGE?
-      $new_rating_value = sanitize_text_field( $_POST['wiki_rating'] );
-      wp_set_object_terms( $post_id, $new_rating_value, 'wiki_rating' );
+    
+      $to_save_rating_value = sanitize_text_field( $_POST['wiki_rating'] );
+      wp_set_object_terms( $post_id, $to_save_rating_value, 'wiki_rating' );
     }
   }
 }  
-
-
-// Need to keep in mind that entering a blank on lastrevid is ok.
-// save_post hook runs after post saved.  Strategy is to change post_status to draft if validation fails.
-// Also to do: set title to wiki_title
-// grab pageid
-// give users a link to page that has been grabbed
-// NOTE: false is the same as an empty string.  Remember this when testing for things and setting variable to false.
-
 ?>
