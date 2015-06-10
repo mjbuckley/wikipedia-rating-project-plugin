@@ -1,0 +1,7 @@
+THEME
+
+-I display a list of taxonomy terms on taxonomy pages using wp_list_categories.  There is no good way to paginate this.  This isn't a problem for the rating and discipline taxonomies, since they won't get too large, but the title taxonomy has the potential to get quite large.  Keep things this way for now, but this is a potential issue in the future that might need a solution.  One thing to look at is get_categories, which return an array of terms and might be useful.
+
+
+PLUGIN
+
