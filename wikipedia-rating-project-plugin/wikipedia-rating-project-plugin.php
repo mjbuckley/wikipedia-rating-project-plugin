@@ -35,6 +35,8 @@ GPLv2 info goes here.
 // I believe sanitize_title() is the right choice for clening title for post_name, but consider sanitize_title_with_dashes()
 // if something doesn't work properly.
 
+// With wikipedia changing to https only, do I need to change anything with the api requiest address?
+
 
 // Register custom post type for reviews
 function wrp_review_create_post_type() {
@@ -145,6 +147,7 @@ function wrp_create_taxonomies() {
   );
   register_taxonomy( 'wiki_disciplines', 'wrp_review', array(
     'hierarchical' => false,
+    'meta_box_cb' => false,
     'labels' => $labels,
     'query_var' => true,
     'rewrite' => array( 'slug' => 'disciplines' ),
@@ -235,6 +238,64 @@ function wrp_create_wiki_rating_metabox( $post ) {
     </select>
   </div>
 <?php }
+
+
+
+
+
+
+
+// Add custom disciplines meta box
+function wrp_add_disciplines_meta_boxes() {
+  add_meta_box(
+    'wrp_wiki_displines_metabox',
+    'Disciplines',
+    'wrp_create_wiki_disciplines_metabox',
+    'wrp_review',
+    'normal',
+    'default'
+  );
+}
+
+add_action( 'add_meta_boxes', 'wrp_add_disciplines_meta_boxes' );
+
+
+// Display code for meta box in admin screen
+function wrp_create_wiki_disciplines_metabox( $post ) {
+  $current_disciplines = get_terms( 'wiki_disciplines', array( 'hide_empty' => 0 ) ); // Array of objects of all disciplines, not just those associated with post.
+  $saved_disciplines = get_the_terms( $post->ID, 'wiki_disciplines' ); // Array of objects of all disciplines currently associated with this post_id.
+  $saved_disciplines_array = array();
+
+  if ( $saved_disciplines && !is_wp_error( $saved_disciplines )) { // Create array of term_ids of of discipline terms currently associated with post.
+    foreach ($saved_disciplines as $saved_discipline) {
+      $saved_disciplines_array[] = $saved_discipline->term_id;
+    }
+  } ?>
+
+<!-- not sure if I should use fieldset or div with way wordpress handles forms in admin.  Either way, be consistent -->
+<div>
+  <fieldset>
+    <legend>Title here if WordPress doesn't handle it</legend>
+    <ul>
+    <?php foreach($current_disciplines as $current_discipline) { // Loop through all disciplies and output as a checkbox
+    $discipline_name = esc_attr( $current_discipline->name );
+    $discipline_term_id = (int) $current_discipline->term_id; // This would be a string if I didn't change it.  Done correctly/need to change in first place?
+    $discipline_css_id = "discipline_" . $discipline_term_id; // Create unique id for each form checkbox.  Ex: discipline_123 for a discipline with term_id 123.
+    ?>
+      <li>
+        <input type="checkbox" name="disciplines[]" value="<?php echo $discipline_term_id; ?>" id="<?php echo $discipline_css_id; ?>"<?php if ( in_array( $discipline_term_id, $saved_disciplines_array )) { echo " checked"; } ?> />
+        <label for="<?php echo $discipline_css_id; ?>"><?php echo $discipline_name; ?></label>
+      </li>
+    <?php } ?>
+    </ul>
+  </fieldset>
+</div>
+
+<?php } // End wrp_create_wiki_disciplines_metabox()
+
+
+
+
 
 
 
@@ -524,6 +585,39 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
 // End WRP_WIKI_TEST: EVENTUALLY MOVE TO INCLUDE FOLDER
 
 
+
+// Function for validating ratings.  Call from within wrp_save_rating.  SHOULD IMPROVE NAMES of both of these.
+
+function wrp_save_disciplines( $post_id ) {
+// do same verification for ratings
+// mostly ok with sanitation/validation, but double check
+
+  if ( empty( $_POST['disciplines'] )) {
+    wp_set_object_terms( $post_id, null, 'wiki_disciplines' );
+  } else {
+    $submitted_disciplines = $_POST['disciplines'];
+    $current_disciplines = get_terms( 'wiki_disciplines', array( 'hide_empty' => 0 ) );
+    $current_disciplines_array = array();
+    $to_save_disciplines = array();
+    foreach($current_disciplines as $current_discipline) {
+      $current_disciplines_array[] = (int) $current_discipline->term_id; // Cast as int because get_terms returns as string
+    } // current_disiplines_array now contains array of all term_ids of all disciplines.
+    foreach ($submitted_disciplines as $submitted_discipline) {
+      $sanitized_discipline = sanitize_text_field( $submitted_discipline );
+      if ( in_array( $sanitized_discipline, $current_disciplines_array )) { // Makes sure submited discipline matches on of the official disciplines
+        $to_save_disciplines[] = (int) $submitted_discipline;
+      }
+    }
+    if ( empty( $to_save_disciplines )) {
+      wp_set_object_terms( $post_id, null, 'wiki_disciplines' );
+    } else {
+      wp_set_object_terms( $post_id, $to_save_disciplines, 'wiki_disciplines' );
+    }
+  }
+}
+
+
+
 // save the meta box data
 
 
@@ -576,9 +670,10 @@ function wrp_save_rating( $post_id ) {
   }
 
 
-  // Make sure that wiki_rating and wiki_title values on submitted form are not empty.
+  // Make sure that wiki_rating and wiki_title values on submitted form are not empty.  ERROR MESSAGE SHOULD BE IMPROVED.
+  // Error could also be if there is some sort of from/submission error.
 
-  if ( !isset($_POST['wiki_rating']) || empty($_POST['wiki_rating']) || !isset($_POST['wiki_title']) || empty($_POST['wiki_title']) ) {
+  if ( !isset($_POST['wiki_rating']) || empty($_POST['wiki_rating']) || !isset($_POST['wiki_title']) || empty($_POST['wiki_title']) || !isset( $_POST['disciplines'] )) {
 
     // Roll back post to draft status
     global $wpdb;
@@ -655,6 +750,8 @@ function wrp_save_rating( $post_id ) {
         wp_set_object_terms( $post_id, $to_save_rating_value, 'wiki_rating' );
         update_post_meta( $post_id ,'lastrevid' , $to_save_lastrevid );
 
+        wrp_save_disciplines( $post_id ); // Run discipline check and save
+
 
         // Get addional values needed to update $post_name
         $post_parent_check = wp_get_post_parent_id( $post_id ); // int value if exists, else false
@@ -688,6 +785,8 @@ function wrp_save_rating( $post_id ) {
     
       $to_save_rating_value = sanitize_text_field( $_POST['wiki_rating'] );
       wp_set_object_terms( $post_id, $to_save_rating_value, 'wiki_rating' );
+
+      wrp_save_disciplines( $post_id ); // run discipline check and save
     }
   }
 }  
