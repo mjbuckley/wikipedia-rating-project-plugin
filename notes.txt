@@ -5,3 +5,8 @@ THEME
 
 PLUGIN
 
+-I disable revisions for the review post type.  They were causing all sorts of problems.  While I have a general understanding of how to go about fixing them, it would take a lot of work and make the code more complicated for something I'm not sure we even want to use.  Some key issues:
+  *Custom metadata doesn't get tied to revisions.  So, if I changed the lastrevid at some point, then reverted to an older revision, the lastrevid would remain the new lastrevid, not the one that existed in the past.
+  *Revisions were causing certain basic functions (like get post meta) not to work properly in the save_post hook.  I think this might be because a revision save is triggered immediately after a "regular" save, and this revision has its own id, which doesn't have the meta data associated with it, which was then triggering an error message (possibly there wasn't even an error on the post save, but only on the revision save, but they happen at the same time so I can't tell).  I could bypass certain save_post checks of the post_status is a revision, but that leads to it's own set of problems.
+  *Revisions were getting a different post_name than the post they were associated with.
+  *Not clear how to deal with the wiki check function and revisions.

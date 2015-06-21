@@ -95,7 +95,9 @@ function wrp_create_wiki_disciplines_metabox( $post ) {
   </fieldset>
 </div>
 
-
+      $saved_titles = get_the_terms( $post->ID, 'wiki_title');
+      $saved_title = $saved_titles ? array_pop($saved_titles) : false;
+      $to_save_title = $saved_title->name
 
 
 

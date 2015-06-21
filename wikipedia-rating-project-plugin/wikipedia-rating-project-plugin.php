@@ -61,7 +61,7 @@ function wrp_review_create_post_type() {
     'supports' => array(
       'editor',
       'author',
-      'revisions',
+      // 'revisions',
     ),
     'taxonomies' => array(
       'wiki_title',
@@ -237,11 +237,12 @@ function wrp_create_wiki_rating_metabox( $post ) {
     <?php } ?> <!-- end foreach -->
     </select>
   </div>
+
+  <!-- hidden fields that contain the current values of each item to be used to compare against submitted values -->
+
+  <input type="hidden" name="current_title" value="<?php if ($saved_title){echo esc_attr( $saved_title->name );} ?>" />
+  <input type="hidden" name="current_lastrevid" value="<?php echo esc_attr( $saved_lastrevid ); ?>" />
 <?php }
-
-
-
-
 
 
 
@@ -493,7 +494,7 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
     $encode_lastrevid = rawurlencode($test_lastrevid);
     $lastrevid_url = $lastrevid_base . $encode_lastrevid . $lastrevid_ending;
     $lastrevid_response = wp_remote_get($lastrevid_url);
-    if( is_array($lastrevid_response) && !is_wp_error($title_response) ) {  // Verify response is in form we expect and not WP Error
+    if( is_array($lastrevid_response) && !is_wp_error($lastrevid_response) ) {  // Verify response is in form we expect and not WP Error
       $body = $lastrevid_response['body']; // Strip response header
       $lastrevid_decoded = json_decode($body, true); // Convert to a PHP useable JSON form
       $query_array = $lastrevid_decoded["query"];
@@ -651,7 +652,9 @@ function wrp_save_rating( $post_id ) {
   // Basic security/capability checks
 
   // Check if nonce is set and valid
-  if( !isset( $_POST['wrp_meta_box_nonce'] ) || !wp_verify_nonce( $_POST['wrp_meta_box_nonce'], 'wrp_meta_box' ) ) return;
+  if( !isset( $_POST['wrp_meta_box_nonce'] ) || !wp_verify_nonce( $_POST['wrp_meta_box_nonce'], 'wrp_meta_box' ) ) {
+    return;
+  }
 
   // If this is an autosave, our form has not been submitted, so we don't want to do anything.
   if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
@@ -673,7 +676,7 @@ function wrp_save_rating( $post_id ) {
   // Make sure that wiki_rating and wiki_title values on submitted form are not empty.  ERROR MESSAGE SHOULD BE IMPROVED.
   // Error could also be if there is some sort of from/submission error.
 
-  if ( !isset($_POST['wiki_rating']) || empty($_POST['wiki_rating']) || !isset($_POST['wiki_title']) || empty($_POST['wiki_title']) || !isset( $_POST['disciplines'] )) {
+  if ( !isset($_POST['wiki_rating']) || empty($_POST['wiki_rating']) || !isset($_POST['wiki_title']) || empty($_POST['wiki_title']) ) {
 
     // Roll back post to draft status
     global $wpdb;
@@ -697,12 +700,24 @@ function wrp_save_rating( $post_id ) {
       $current_title = false;
     }
 
-    $pre_current_lastrevid = get_post_meta( $post_id, 'lastrevid', true );
-    if (empty($pre_current_lastrevid)) {
+
+    // $pre_old_title_value = get_the_terms( $post_id, 'wiki_title' );
+    // $old_title_value = $pre_old_title_value ? array_pop($pre_old_title_value) : false;
+    // $current_title = $old_title_value ? $old_title_value->name : false;
+
+
+    $pre_current_lastrevid = get_post_meta( $post_id, "lastrevid", true ); // FOR SOME REASON THIS IS RETURNING FALSE
+    if ( empty($pre_current_lastrevid) ) {
       $current_lastrevid = false;
     } else {
       $current_lastrevid = $pre_current_lastrevid;
     }
+
+
+    // Grab values from previously saved version of post (sent in hidden form field) if they exist, set to false otherwise
+
+    // $current_title = isset( $_POST['current_title']) ? sanitize_text_field( $_POST['current_title'] ) : false;
+    // $current_lastrevid = isset( $_POST['current_lastrevid']) ? sanitize_text_field( $_POST['current_lastrevid'] ) : false;
 
 
     // Now get the wiki_title and wiki_lastrevid values submitted in the form
@@ -713,7 +728,8 @@ function wrp_save_rating( $post_id ) {
 
     // Check if this is a new review or if new values differ from saved values. If true, wrp_wiki_test() needs to be run.
 
-    if (empty($new_lastrevid) || ($new_lastrevid !== $current_lastrevid) || ($new_title_value !== $current_title)) {
+    // if ( empty($new_lastrevid) || ($new_lastrevid != $current_lastrevid) || ($new_title_value != $current_title) ) {
+    if ( empty($new_lastrevid) || ($new_lastrevid != $current_lastrevid) ) {
 
       $wiki_info = wrp_wiki_test( $new_title_value, $new_lastrevid );
 
@@ -750,7 +766,10 @@ function wrp_save_rating( $post_id ) {
         wp_set_object_terms( $post_id, $to_save_rating_value, 'wiki_rating' );
         update_post_meta( $post_id ,'lastrevid' , $to_save_lastrevid );
 
-        wrp_save_disciplines( $post_id ); // Run discipline check and save
+
+        if ( isset( $_POST['disciplines'] ) && !empty( $_POST['disciplines'] ) ) { // Run discipline check and save is disciplines submitted
+          wrp_save_disciplines( $post_id );
+        }
 
 
         // Get addional values needed to update $post_name
@@ -777,16 +796,17 @@ function wrp_save_rating( $post_id ) {
       }
 
 
-    // wiki_title and wiki_lastrevid were not changed in the form.  Update rating.  This may be unnecceasry, but no real harm,
-    // and it simplifies the code rather than needing to do additional check.  Should be no need for a special message because
-    // the default WP post update message will be sent.
+    // wiki_title and wiki_lastrevid were not changed in the form.  Still need to update all custom fields/title because they
+    // do not persist between updates.  Should be no need for a special message because the default WP post update message will be sent.
 
     } else {
     
       $to_save_rating_value = sanitize_text_field( $_POST['wiki_rating'] );
       wp_set_object_terms( $post_id, $to_save_rating_value, 'wiki_rating' );
 
-      wrp_save_disciplines( $post_id ); // run discipline check and save
+      if ( isset( $_POST['disciplines'] ) && !empty( $_POST['disciplines'] ) ) { // Run discipline check and save is disciplines submitted
+        wrp_save_disciplines( $post_id );
+      }
     }
   }
 }  
