@@ -37,6 +37,9 @@ GPLv2 info goes here.
 
 // With wikipedia changing to https only, do I need to change anything with the api requiest address?
 
+// Right now the wiki_check is skipped on autosave, which basically makes sense, but I could set up a smart one that never changes a title,
+// but which does save stuff if nothing has changed.
+
 
 // Register custom post type for reviews
 function wrp_review_create_post_type() {
@@ -809,5 +812,97 @@ function wrp_save_rating( $post_id ) {
       }
     }
   }
-}  
+}
+
+
+
+// Stuff below cleans up admin menu.  Ideally some of these things should be a bit more targeted.  Ex: comments remove from admin toolbar
+// only for our custom role, not everyone.  Important if other people want to use the plugin.
+
+
+// Remove comments menu from admin screen for all but admins.
+function wrp_remove_comments_menu() {
+  $user = wp_get_current_user();
+  if ( ! $user->has_cap( 'manage_options' ) ) {
+    remove_menu_page( 'edit-comments.php' );
+  }
+}
+add_action( 'admin_menu', 'wrp_remove_comments_menu' );
+
+
+// Remove tools menu from admin screen for all but admins.
+function wrp_remove_tools_menu() {
+  $user = wp_get_current_user();
+  if ( ! $user->has_cap( 'manage_options' ) ) {
+    remove_menu_page( 'tools.php' );
+  }
+}
+add_action( 'admin_menu', 'wrp_remove_tools_menu' );
+
+// Only show posts editable by the user in the admin screen.
+function wrp_only_author_posts( $wp_query ) {
+  global $current_user;
+  if( is_admin() && !current_user_can('edit_others_posts') ) {
+    $wp_query->set( 'author', $current_user->ID );
+  }
+}
+add_action('pre_get_posts', 'wrp_only_author_posts' );
+
+
+function wrp_remove_wp_logo( $wp_admin_bar ) {
+  $wp_admin_bar->remove_node( 'wp-logo' );
+}
+add_action( 'admin_bar_menu', 'wrp_remove_wp_logo', 999 );
+
+
+function wrp_remove_admin_bar_comments( $wp_admin_bar ) {
+  $wp_admin_bar->remove_node( 'comments' );
+}
+add_action( 'admin_bar_menu', 'wrp_remove_admin_bar_comments', 999 );
+
+
+// Clean up dashboard for non-admins
+function wrp_clean_dashboard() {
+  $user = wp_get_current_user();
+  if ( ! $user->has_cap( 'manage_options' ) ) {
+    // remove_meta_box( 'dashboard_activity', 'dashboard', 'normal');
+    remove_meta_box( 'dashboard_right_now', 'dashboard', 'normal' );
+    remove_meta_box( 'dashboard_quick_press', 'dashboard', 'side' );
+    remove_meta_box( 'dashboard_primary', 'dashboard', 'side' );
+  }
+}
+add_action( 'wp_dashboard_setup', 'wrp_clean_dashboard' );
+
+
+// Removes the post number count on the listing of a users review. The number shown reflects all reviews on site rather than the
+// number of reviews by the user.  This is confusing.  Method below is a temp measure.  Consider actually fixing how the numbers
+// are calculated rather than just hiding them (possibly with views_edit-post filter and unset($views['mine']), although this works
+// fine for now.  Also, removes 'mine' tab, because in this case 'mine' and 'all' refer to same thing.
+
+function wrp_improve_reviews_tabs() {
+  $user = wp_get_current_user();
+  if ( ! $user->has_cap( 'manage_options' ) ) {
+    $css  = '<style>.subsubsub a .count { display: none; }</style>';
+    $css2 = '<style>.subsubsub .mine { display: none; }</style>';
+
+    echo $css;
+    echo $css2;
+  }
+}
+add_action( 'admin_head', 'wrp_improve_reviews_tabs' );
+
+// Grabbed this code for replacing the howdy greeting.  Works, feel like there should be a better way.
+function wrp_replace_howdy( $wp_admin_bar ) {
+  $my_account=$wp_admin_bar->get_node('my-account');
+  $newtitle = str_replace( 'Howdy,', 'Welcome,', $my_account->title );
+  $wp_admin_bar->add_node( array(
+    'id' => 'my-account',
+    'title' => $newtitle,
+    )
+  );
+}
+add_filter( 'admin_bar_menu', 'wrp_replace_howdy', 25 );
+
+
+
 ?>

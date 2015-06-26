@@ -297,4 +297,41 @@ function my_notices() {
 }
 
 
+// Remove comments menu from admin screen for all but admins.
+function wrp_remove_comments_menu() {
+  $user = wp_get_current_user();
+  if ( ! $user->has_cap( 'manage_options' ) ) {
+    remove_menu_page( 'edit-comments.php' );
+  }
+}
+add_action( 'admin_menu', 'wrp_remove_comments_menu' );
+
+
+// Only show posts editable by the user in the admin screen.
+function wrp_only_author_posts( $wp_query ) {
+  global $current_user;
+  if( is_admin() && !current_user_can('edit_others_posts') ) {
+    $wp_query->set( 'author', $current_user->ID );
+  }
+}
+add_action('pre_get_posts', 'wrp_only_author_posts' );
+
+
+
+
+// Clean up dashboard for non-admins
+function wrp_clean_dashboard() {
+  $user = wp_get_current_user();
+  if ( ! $user->has_cap( 'manage_options' ) ) {
+    remove_meta_box( 'dashboard_activity', 'dashboard', 'normal');
+    remove_meta_box( 'dashboard_right_now', 'dashboard', 'normal' );
+    remove_meta_box( 'dashboard_quick_press', 'dashboard', 'side' );
+    remove_meta_box( 'dashboard_primary', 'dashboard', 'side' );
+  }
+}
+add_action( 'wp_dashboard_setup', 'wrp_clean_dashboard' );
+
+
+
+
 
