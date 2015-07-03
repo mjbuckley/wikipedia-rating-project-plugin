@@ -15,10 +15,108 @@ still show a post update message.  Figure out how to remove that.
 <?php
 
 
+// NOTE: CURRENTLY, CONTRIBUTORS CANNOT EDIT PUBLISHED POSTS
+
+// ALSO, NOT SURE EXACTLY WHEN CHECKS GET RUN AND STUFF GETS SAVED.  WE WANT THAT HAPPENING ONCE, NOTE
+// TWICE OR ELSE THE LASTREVID COULD CHANGE.
+
+// I THINK I CAN AVOID PRIVATE POSTS BY CREATING THE CAPABILITIES BUT GRANTING THEM TO NO ONE.
+
+// I THINK I ULTIMATELY NEED TO DEFINE THE ALL THE CAPABILITIES AND THEN EXPLICITLY ASSIGN THEM.
+
+// BE SURE TO ALERT USERS THAT OTHER ROLES THEY HAVE ADDED OR ADD IN THE FUTURE NEED TO HAVE THEIR CAPABILITIES ADDED
+
+
+// Create custom role of "Rater"
+
+function wrp_add_reviewer_role() {
+  remove_role( 'wrp_reviewer' );
+  add_role( 'wrp_reviewer', 'Reviewer', array(
+    'read' => true,
+    'edit_posts' => false,
+    'delete_posts' => false,
+    'publish_posts' => false,
+    )
+  );
+}
+register_activation_hook( __FILE__, 'wrp_add_reviewer_role' );
+
+
+
+// Add to wrp_reviewer post type
+
+'capability_type' => '',
+'capabilities' => array(
+  'edit_post' => 'edit_wrp_review',
+  'read_post' => 'read_wrp_review',
+  'delete_post' => 'delete_wrp_review',
+  'edit_posts' => 'edit_wrp_reviews',
+  'edit_others_posts' => 'edit_others_wrp_reviews',
+  'publish_posts' => 'publish_wrp_reviews',
+  'read_private_posts' => 'read_private_wrp_reviews',
+  'read' => 'read_wrp_reviews',
+  'delete_posts' => 'delete_wrp_reviews',
+  'delete_private_posts' => 'delete_private_wrp_reviews',
+  'delete_published_posts' => 'delete_published_wrp_reviews',
+  'delete_others_posts' => 'delete_others_wrp_reviews',
+  'edit_private_posts' => 'edit_private_wrp_reviews',
+  'edit_published_posts' => 'edit_published_wrp_reviews',
+  'create_posts' => 'create_wrp_reviews',
+),
+'map_meta_cap' => true,
+
+
+
+// Add capabilities for the for wrp_review type
+function wrp_add_review_caps() {
+
+  // Array of default WordPress roles as well as the custom wrp_reviewer role
+  $roles = array( 'super admin', 'administrator', 'editor', 'author', 'wrp_reviewer', 'subscriber' );
+
+  // Loop through each role and add capabilities
+  foreach( $roles as $the_role ) {
+
+    $role = get_role( $the_role );
+
+    // All roles
+    $role->add_cap( 'read_wrp_reviews' );
+
+    // All roles above subscriber
+    if( $the_role == 'super admin' || $the_role == 'administrator' || $the_role == 'editor' || $the_role == 'author' || $the_role == 'contributor' || $the_role == 'wrp_reviewer' ) {
+      $role->add_cap( 'edit_wrp_reviews' );
+      $role->add_cap( 'delete_wrp_reviews' );
+      $role->add_cap( 'delete_published_wrp_reviews' );
+      $role->add_cap( 'edit_published_wrp_reviews' );
+      $role->add_cap( 'create_wrp_reviews' );
+    }
+
+    // All roles above wrp_reviewer
+    if ( $the_role == 'super admin' || $the_role == 'administrator' || $the_role == 'editor' || $the_role == 'author' ) {
+      $role->add_cap( 'publish_wrp_reviews' );
+    }
+
+    // All roles above author
+    if ( $the_role == 'super admin' || $the_role == 'administrator' || $the_role == 'editor' ) {
+      $role->add_cap( 'edit_others_wrp_reviews' );
+      $role->add_cap( 'read_private_wrp_reviews' );
+      $role->add_cap( 'delete_private_wrp_reviews' ); // Consider not adding this and other private cap to prevent private posts?  Not sure if that works?
+      $role->add_cap( 'delete_others_wrp_reviews' );
+      $role->add_cap( 'edit_private_wrp_reviews' ); // Consider not adding this and other private cap to prevent private posts?  Not sure if that works?
+    }
+  }
+}
+add_action( 'admin_init', 'wrp_add_review_caps', 999 );
+
+
+
+
+
+
+
+
+
 
 add_action( 'save_post','wrp_save_disciplines' );
-
-
 
 function wrp_save_disciplines( $post_id ) {
 // do same verification for ratings
