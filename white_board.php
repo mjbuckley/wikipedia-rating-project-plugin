@@ -15,6 +15,41 @@ still show a post update message.  Figure out how to remove that.
 <?php
 
 
+// Include wrp_review post_type on author archive pages
+function wrp_fix_author_archive($query) {
+  if ($query->is_author) {
+    $query->set( 'post_type', array('wrp_review', 'post') );
+    remove_action( 'pre_get_posts', 'wrp_fix_author_archive' );
+  }
+add_action('pre_get_posts', 'wrp_fix_author_archive');
+
+
+// CODE TO ADD that puts login/out link on primary nav menu
+// Add to theme not plugin
+function wrp_add_loginout( $menu ) {
+    $loginout = wp_loginout($_SERVER['REQUEST_URI'], false );
+    $menu .= $loginout;
+    return $menu;
+}
+add_filter( 'wp_nav_menu_primary_items','wrp_add_loginout' );
+
+
+// post_name issue
+
+-by assigning a post_name before the draft/pending is published, this preserves that name.
+
+if post_status is publish, set post name, else don't.  Not sure what to do about posts shifting from publish to dre
+
+States:
+
+- publish
+- publish => draft
+- pending => draft
+- pending => publish
+
+
+
+
 // NOTE: CURRENTLY, CONTRIBUTORS CANNOT EDIT PUBLISHED POSTS
 
 // ALSO, NOT SURE EXACTLY WHEN CHECKS GET RUN AND STUFF GETS SAVED.  WE WANT THAT HAPPENING ONCE, NOTE

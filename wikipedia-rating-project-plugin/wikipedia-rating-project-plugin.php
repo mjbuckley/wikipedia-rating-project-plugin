@@ -71,11 +71,30 @@ function wrp_review_create_post_type() {
       'wiki_rating',
       'wiki_disciplines',
       'wiki_pageid',
-    ), 
+    ),
+    // Below is needed for custom roles
+    'capability_type' => '',
+    'capabilities' => array(
+      'edit_post' => 'edit_wrp_review',
+      'read_post' => 'read_wrp_review',
+      'delete_post' => 'delete_wrp_review',
+      'edit_posts' => 'edit_wrp_reviews',
+      'edit_others_posts' => 'edit_others_wrp_reviews',
+      'publish_posts' => 'publish_wrp_reviews',
+      'read_private_posts' => 'read_private_wrp_reviews',
+      'read' => 'read_wrp_reviews',
+      'delete_posts' => 'delete_wrp_reviews',
+      'delete_private_posts' => 'delete_private_wrp_reviews',
+      'delete_published_posts' => 'delete_published_wrp_reviews',
+      'delete_others_posts' => 'delete_others_wrp_reviews',
+      'edit_private_posts' => 'edit_private_wrp_reviews',
+      'edit_published_posts' => 'edit_published_wrp_reviews',
+      'create_posts' => 'create_wrp_reviews',
+    ),
+    'map_meta_cap' => true,
   );
   register_post_type( 'wrp_review', $args );
-} 
-
+}
 add_action( 'init', 'wrp_review_create_post_type' );
 
 
@@ -177,7 +196,6 @@ function wrp_create_taxonomies() {
   wp_insert_term('Start', 'wiki_rating');
   wp_insert_term('Stub', 'wiki_rating');
 }
-
 add_action( 'init', 'wrp_create_taxonomies', 0 );
 
 
@@ -193,7 +211,6 @@ function wrp_add_meta_boxes() {
     'high'
   );
 }
-
 add_action( 'add_meta_boxes', 'wrp_add_meta_boxes' );
 
 
@@ -260,7 +277,6 @@ function wrp_add_disciplines_meta_boxes() {
     'default'
   );
 }
-
 add_action( 'add_meta_boxes', 'wrp_add_disciplines_meta_boxes' );
 
 
@@ -902,6 +918,67 @@ function wrp_replace_howdy( $wp_admin_bar ) {
   );
 }
 add_filter( 'admin_bar_menu', 'wrp_replace_howdy', 25 );
+
+
+// Create new reviewer role, then add capabilites to users.  NOTE: I believe the order of register_activation_hook matters.
+// The one creating the roles must come before the one adding the caps.
+
+function wrp_add_reviewer_role() {
+  remove_role( 'wrp_reviewer' );
+  add_role( 'wrp_reviewer', 'Reviewer', array(
+    'read' => true,
+    'edit_posts' => false,
+    'delete_posts' => false,
+    'publish_posts' => false,
+    )
+  );
+}
+register_activation_hook( __FILE__, 'wrp_add_reviewer_role' );
+
+
+// Add capabilities for the for wrp_review type
+function wrp_add_review_caps() {
+
+  // Array of default WordPress roles as well as the custom wrp_reviewer role.  Super admin not included.
+  $roles = array( 'administrator', 'editor', 'author', 'wrp_reviewer', 'subscriber' );
+
+  // Loop through each role and add capabilities
+  foreach( $roles as $the_role ) {
+
+    $role = get_role( $the_role );
+
+    if( !is_null( $role ) ) { // Checks in cases one of the default roles has been removed
+
+      // All roles
+      $role->add_cap( 'read_wrp_reviews' );
+
+      // All roles above subscriber
+      if( $the_role == 'administrator' || $the_role == 'editor' || $the_role == 'author' || $the_role == 'contributor' || $the_role == 'wrp_reviewer' ) {
+        $role->add_cap( 'edit_wrp_reviews' );
+        $role->add_cap( 'delete_wrp_reviews' );
+        $role->add_cap( 'delete_published_wrp_reviews' );
+        $role->add_cap( 'edit_published_wrp_reviews' );
+        $role->add_cap( 'create_wrp_reviews' );
+      }
+
+      // All roles above wrp_reviewer
+      if ( $the_role == 'administrator' || $the_role == 'editor' || $the_role == 'author' ) {
+        $role->add_cap( 'publish_wrp_reviews' );
+      }
+
+      // All roles above author
+      if ( $the_role == 'administrator' || $the_role == 'editor' ) {
+        $role->add_cap( 'edit_others_wrp_reviews' );
+        $role->add_cap( 'read_private_wrp_reviews' );
+        $role->add_cap( 'delete_private_wrp_reviews' ); // Consider not adding this and other private cap to prevent private posts?  Not sure if that works?
+        $role->add_cap( 'delete_others_wrp_reviews' );
+        $role->add_cap( 'edit_private_wrp_reviews' ); // Consider not adding this and other private cap to prevent private posts?  Not sure if that works?
+      }
+    }
+  }
+}
+register_activation_hook( __FILE__, 'wrp_add_review_caps' );
+// add_action( 'admin_init', 'wrp_add_review_caps', 999 );
 
 
 
