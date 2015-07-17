@@ -15,6 +15,20 @@ still show a post update message.  Figure out how to remove that.
 <?php
 
 
+
+// Function to remove post updated message.  Add the function to the post_updated_messages filter.
+// Sometimes the message pops up even when the post isn't saved because of the way I have things set up
+// and this removes that confusion.
+function wrp_remove_update_message( $messages )
+{
+  unset($messages[post][6]);
+  return $messages;
+}
+add_filter( 'post_updated_messages', 'wrp_remove_update_message' );
+
+
+
+
 // Include wrp_review post_type on author archive pages
 function wrp_fix_author_archive($query) {
   if ($query->is_author) {

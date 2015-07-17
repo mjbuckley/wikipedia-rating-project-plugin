@@ -10,3 +10,13 @@ PLUGIN
   *Revisions were causing certain basic functions (like get post meta) not to work properly in the save_post hook.  I think this might be because a revision save is triggered immediately after a "regular" save, and this revision has its own id, which doesn't have the meta data associated with it, which was then triggering an error message (possibly there wasn't even an error on the post save, but only on the revision save, but they happen at the same time so I can't tell).  I could bypass certain save_post checks of the post_status is a revision, but that leads to it's own set of problems.
   *Revisions were getting a different post_name than the post they were associated with.
   *Not clear how to deal with the wiki check function and revisions.
+
+
+
+MAGIC QUOTES
+
+In the past php had an option to automatically escape certain characters with a backslash in certain cases (such as $_POST objects).  This was function was called magic quotes.  This feature could be turned on or off.  To deal with the uncertainty of whether the feature was turned on, wordpress decided to replicate the feature no matter whether it was turned on or off.  Now the function has been removed from php, but wordpress continues to add magic quotes.  The rational is for backwards compatibility, since many plugins are expecting the characters to be escaped.  Additionally, it seems like some core functions assume this as well (I'm less certain here).  They can be removed if needed, but most important thing is to know that they are added and where they are coming from.
+
+
+The wordpress function add_magic_quotes uses the php function addslashes.
+The wordpress function stripslashes_deep uses the php function stripslashes.

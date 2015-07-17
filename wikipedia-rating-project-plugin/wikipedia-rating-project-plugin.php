@@ -16,9 +16,14 @@ GPLv2 info goes here.
 
 // NOTES:
 
-// ADD An uninstall option to the plugin.
+// useful for debugging when you cannont print to screen: error_log(print_r($tvariable_name, TRUE)).  Then run
+// "tail php_error.log" from the MAMP folder in the terminal.
 
-// wp_unique_post_slug doesn't do a uniqueness check if post status is pending.  I can probably override this, but figure it out.
+// Need to sanitize results from wiki api?
+
+// Learn and conform to WP coding style guidelines
+
+// ADD An uninstall option to the plugin.
 
 // Improve error/success messages.  Remove default WP message where needed.
 
@@ -26,11 +31,7 @@ GPLv2 info goes here.
 
 // way to include files: include( plugin_dir_path(__FILE__) . '/includes/wrp_wiki_test.php' );
 
-// Better understand user o query_var/figure out pagination (probably related topics)
-
-// Work on disciplines
-
-// Do we really want to support revisions?
+// Better understand query_var/figure out pagination (probably related topics)
 
 // I believe sanitize_title() is the right choice for clening title for post_name, but consider sanitize_title_with_dashes()
 // if something doesn't work properly.
@@ -39,6 +40,14 @@ GPLv2 info goes here.
 
 // Right now the wiki_check is skipped on autosave, which basically makes sense, but I could set up a smart one that never changes a title,
 // but which does save stuff if nothing has changed.
+
+// I use an anonymous function I found and modified to add a query arg that contains key to a custom admin message.  The function takes
+// a $loc argument.  However, I never pass one to the function, and I don't think it gets passed any other way.  I think it is just an
+// optional redirect location that I don't use.  Make sure my understanding is correct, and if so, remove it.
+
+// There should probably be a check on the wiki test to make sure at least a title is included.
+
+// do same verification for ratings as I did for disciplines
 
 
 // Register custom post type for reviews
@@ -64,7 +73,6 @@ function wrp_review_create_post_type() {
     'supports' => array(
       'editor',
       'author',
-      // 'revisions',
     ),
     'taxonomies' => array(
       'wiki_title',
@@ -96,7 +104,6 @@ function wrp_review_create_post_type() {
   register_post_type( 'wrp_review', $args );
 }
 add_action( 'init', 'wrp_review_create_post_type' );
-
 
 
 // Register custom taxonomies
@@ -177,7 +184,7 @@ function wrp_create_taxonomies() {
     )
   );
 
-  // wiki_pageid taxonomy (set to private, for possible future internal use, will be added in background, not by user)
+  // wiki_pageid taxonomy: currently not in use but can imagine wanting in the future.  Will be added in background, not by user.
   register_taxonomy(
   'wiki_pageid',
   'wrp_review',
@@ -199,7 +206,6 @@ function wrp_create_taxonomies() {
 add_action( 'init', 'wrp_create_taxonomies', 0 );
 
 
-
 // Add custom meta box adding review info
 function wrp_add_meta_boxes() {
   add_meta_box(
@@ -212,7 +218,6 @@ function wrp_add_meta_boxes() {
   );
 }
 add_action( 'add_meta_boxes', 'wrp_add_meta_boxes' );
-
 
 
 // Display code for meta box in admin screen
@@ -232,7 +237,6 @@ function wrp_create_wiki_rating_metabox( $post ) {
     <br />
     <input type="text" name="wiki_title" id="meta_box_title" value="<?php if ($saved_title){echo esc_attr( $saved_title->name );} ?>" />
   </div>
-
 
   <!-- The true parameter in get_post_meta() means that only the first value is returned (although there
     should only be one), and it returns value as a string instead of as an array. If key (lastrevid) does
@@ -258,12 +262,7 @@ function wrp_create_wiki_rating_metabox( $post ) {
     </select>
   </div>
 
-  <!-- hidden fields that contain the current values of each item to be used to compare against submitted values -->
-
-  <input type="hidden" name="current_title" value="<?php if ($saved_title){echo esc_attr( $saved_title->name );} ?>" />
-  <input type="hidden" name="current_lastrevid" value="<?php echo esc_attr( $saved_lastrevid ); ?>" />
 <?php }
-
 
 
 // Add custom disciplines meta box
@@ -280,7 +279,7 @@ function wrp_add_disciplines_meta_boxes() {
 add_action( 'add_meta_boxes', 'wrp_add_disciplines_meta_boxes' );
 
 
-// Display code for meta box in admin screen
+// Display code for discipline meta box in admin screen
 function wrp_create_wiki_disciplines_metabox( $post ) {
   $current_disciplines = get_terms( 'wiki_disciplines', array( 'hide_empty' => 0 ) ); // Array of objects of all disciplines, not just those associated with post.
   $saved_disciplines = get_the_terms( $post->ID, 'wiki_disciplines' ); // Array of objects of all disciplines currently associated with this post_id.
@@ -292,7 +291,7 @@ function wrp_create_wiki_disciplines_metabox( $post ) {
     }
   } ?>
 
-<!-- not sure if I should use fieldset or div with way wordpress handles forms in admin.  Either way, be consistent -->
+<!-- not sure if I should use fieldset, div, or both with the way wordpress handles forms in admin.  Either way, be consistent -->
 <div>
   <fieldset>
     <legend>Title here if WordPress doesn't handle it</legend>
@@ -314,27 +313,22 @@ function wrp_create_wiki_disciplines_metabox( $post ) {
 <?php } // End wrp_create_wiki_disciplines_metabox()
 
 
-
-
-
-
-
 // Admin notice functions.
 
 add_action( 'admin_notices', 'my_notices' );
 
 // Checks for presence of custom admin message and displays it
 // Consider changing switch statement to an array?
+// Probably don't need to sanitize $_GET['my_message'] since it is never used only checked, but what would be the best way if I did?
+// Consider possibilities if someone passed a fake my_message.
 function my_notices() {
   if ( ! isset( $_GET['my_message'] ) ) {
     return;
   } else {
-
-    //sanitize this?
     $message_value = $_GET['my_message'];
-
     $message_check = "success";
 
+    // Creates link to wikipedia page if the message contains "success"
     if (strpos($message_value, $message_check) !== false) {
       $title = get_the_title();
       $encode_title = rawurlencode($title);
@@ -344,7 +338,7 @@ function my_notices() {
 
     switch($message_value) {
       case "error1":
-        $message = "There is no Wikipedia article with the title that you entered.  Please check the title and try again.";
+        $message = "There is no Wikipedia article with the title that you entered.  Please double check the spelling and capitalization and try again.";
         $class = "error";
         break;
       case "error2":
@@ -356,7 +350,7 @@ function my_notices() {
         $class = "error";
         break;
       case "error4":
-        $message = "The title associated with the lastrevid does not match the given title";
+        $message = "The lastrevid and title do not match.  Please recheck the number and title and try again.";
         $class = "error";
         break;
       case "error5":
@@ -369,7 +363,7 @@ function my_notices() {
         $class = "error";
         break;
       case "error7":
-        $message = "The Wikipedia article title and/or the rating are not filled out.  Please complete those fields and try again.";
+        $message = "The Wikipedia article title and/or the rating are not filled out.  Please be sure both fields are complete and try again.";
         $class = "error";
         break;    
       case "success1":
@@ -419,15 +413,8 @@ function my_notices() {
 } // End my_notices()
 
 
-// NOTE! Do I need to (can I even in this context) escape the add_query_arg.  Important given recent security issue around this.
-// Also, adapted from found code.  Uncertain about use of $loc (but works).
 
-// function my_message($loc) {
-//   return add_query_arg( 'my_message', 123, $loc );
-// }
-
-
-// START WRP_WIKI_TEST: EVENTUALLY MOVE TO INCLUDE FOLDER
+// START WRP_WIKI_TEST: EVENTUALLY SEPERATE THIS AN OTHERS OUT.
 
 function wrp_wiki_test( $test_title, $test_lastrevid ) {
 
@@ -602,15 +589,15 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
   }
 }
 
-// End WRP_WIKI_TEST: EVENTUALLY MOVE TO INCLUDE FOLDER
+// End WRP_WIKI_TEST
 
 
 
-// Function for validating ratings.  Call from within wrp_save_rating.  SHOULD IMPROVE NAMES of both of these.
+// Function for validating and saving ratings.  Called from within wrp_save_rating.  SHOULD IMPROVE NAMES of both of these.
+// This makes sure that a discipline can only be saved if it already exists (added in admin screen by an admin).
+// Prevents the unlikely possibility of someone using something like curl to add unofficial (possibly malicious) disciplines to save.
 
 function wrp_save_disciplines( $post_id ) {
-// do same verification for ratings
-// mostly ok with sanitation/validation, but double check
 
   if ( empty( $_POST['disciplines'] )) {
     wp_set_object_terms( $post_id, null, 'wiki_disciplines' );
@@ -636,23 +623,26 @@ function wrp_save_disciplines( $post_id ) {
   }
 }
 
+// Function below will remove post update message in all cases.  I still haven't got it working for only select cases yet.
+
+// function wrp_remove_update_message( $messages ) {
+//   unset($messages['post'][6]);
+//   return $messages;
+// }
+//add_filter( 'post_updated_messages', 'wrp_remove_update_message' );
+
 
 
 // save the meta box data
 
 
 // NOTES:
-// -Not sure that user permissions are set up correctly.  Probably not to reference the cutom post type somewhere.
-// Although I don't think what I have would prevent people from editing posts.  It just might be too permissive.
+// -Not sure that user permissions are set up correctly.  Probably need to reference the cutom post type somewhere, not just
+// a generic post reference. Not sure.
 // -I think chceking for presence of wrp_meta_box_nonce at the start is enough to make this not run on other types
 // of posts/pages, but be sure.
 // Function doesn't run on autosave, but what about drafts/other?
 // DEAL WITH INFINITE LOOP issue with wp_update_post
-// BE SURE TO incorporate code I have in array_test.php file.
-// DON'T FORGET about wiki_disciplines and how they are/should be handled.
-// RETURN A LINK TO the wikipedia page in the admin notice after initial save.
-// FIGURE OUT HOW to get wiki_info['message'] passed into admin notice function.  Use anonymous function?
-// ADD ADMIN notice of success to wiki_rating save at end of code?
 
 
 // Function Info:
@@ -719,12 +709,6 @@ function wrp_save_rating( $post_id ) {
       $current_title = false;
     }
 
-
-    // $pre_old_title_value = get_the_terms( $post_id, 'wiki_title' );
-    // $old_title_value = $pre_old_title_value ? array_pop($pre_old_title_value) : false;
-    // $current_title = $old_title_value ? $old_title_value->name : false;
-
-
     $pre_current_lastrevid = get_post_meta( $post_id, "lastrevid", true ); // FOR SOME REASON THIS IS RETURNING FALSE
     if ( empty($pre_current_lastrevid) ) {
       $current_lastrevid = false;
@@ -732,23 +716,16 @@ function wrp_save_rating( $post_id ) {
       $current_lastrevid = $pre_current_lastrevid;
     }
 
-
-    // Grab values from previously saved version of post (sent in hidden form field) if they exist, set to false otherwise
-
-    // $current_title = isset( $_POST['current_title']) ? sanitize_text_field( $_POST['current_title'] ) : false;
-    // $current_lastrevid = isset( $_POST['current_lastrevid']) ? sanitize_text_field( $_POST['current_lastrevid'] ) : false;
-
-
-    // Now get the wiki_title and wiki_lastrevid values submitted in the form
-
-    $new_title_value = sanitize_text_field( $_POST['wiki_title'] );
+    // Due to a weird WordPress quirk, magic quotes are added to $_POST values (and some other things).  This means that
+    // Fool's gets changed to Fool\'s.  This needs to be removed or else the wikipedia api will get the wrong info.
+    // stripslashes_deep() is a WP function that does this.
+    $pre_new_title_value = stripslashes_deep( $_POST['wiki_title'] );
+    $new_title_value = sanitize_text_field( $pre_new_title_value );
     $new_lastrevid = sanitize_text_field( $_POST['lastrevid'] );
 
 
     // Check if this is a new review or if new values differ from saved values. If true, wrp_wiki_test() needs to be run.
-
-    // if ( empty($new_lastrevid) || ($new_lastrevid != $current_lastrevid) || ($new_title_value != $current_title) ) {
-    if ( empty($new_lastrevid) || ($new_lastrevid != $current_lastrevid) ) {
+    if ( empty($new_lastrevid) || ($new_lastrevid != $current_lastrevid) || ($new_title_value != $current_title) ) {
 
       $wiki_info = wrp_wiki_test( $new_title_value, $new_lastrevid );
 
@@ -769,8 +746,8 @@ function wrp_save_rating( $post_id ) {
 
       } else {
 
-        // Get values to save (page_id set to string because wp_set_object_terms treats an integer term as a tag id refernce number,
-        // not as value itself).
+        // Get values to save.  page_id set to string because wp_set_object_terms treats an integer term as a tag id refernce number,
+        // not as value itself.
 
         $to_save_title = $wiki_info['title'];
         $to_save_lastrevid = $wiki_info['lastrevid'];
@@ -786,7 +763,7 @@ function wrp_save_rating( $post_id ) {
         update_post_meta( $post_id ,'lastrevid' , $to_save_lastrevid );
 
 
-        if ( isset( $_POST['disciplines'] ) && !empty( $_POST['disciplines'] ) ) { // Run discipline check and save is disciplines submitted
+        if ( isset( $_POST['disciplines'] ) && !empty( $_POST['disciplines'] ) ) { // Run discipline check and save if disciplines submitted
           wrp_save_disciplines( $post_id );
         }
 
@@ -799,6 +776,20 @@ function wrp_save_rating( $post_id ) {
 
         // Prepare title to be added as post_name.  First remove anything probelmatic, then check for other posts with same
         // name and add a number to end of post_name if needed.
+
+        // NOTE: wp_unique_post_slug will only ensure a unique post_name if post_status is publish.  Otherwise it will just return the given
+        // post_name without checking if the same one exists.  However, once a post gets changed to publish, WordPress runs a check
+        // and will ensure a unique post_name.  The use of wp_unique_post_slug and the insertion of the post_name into the database
+        // is really only needed for posts that get immediately published without an intermediary pending status, as they briefly have no
+        // title (it is assigned immediately afterward in a post save hook), and without a title a post_name cannot be generated.
+        // Consider modifying the belowe code to only run for post_name if post_status is publish.  There isn't really a problem with what's
+        // here, but it would be clearer.  Also, note that WordPress sets post_name to "" if contributor doesn't have publishing caps.
+        // On initial save this gets bypassed by the direct insertion of post_name into the db, but on secondary updates, WP will change
+        // post_name to "".  This is confusing, but not a problem, as post_name only matters when published, and as long as post_title exists
+        // then post_name will get generated.
+
+        // sort of post_name check ensuring uniqueness, and the non-unique post_name gets changed.  I would like to
+        // improve this so that even pending 
         $sanitized_title = sanitize_title( $to_save_title );
         $unique_slug = wp_unique_post_slug( $sanitized_title, $post_id, $post_status_check, 'wrp_review', $post_parent_check );
 
@@ -815,8 +806,8 @@ function wrp_save_rating( $post_id ) {
       }
 
 
-    // wiki_title and wiki_lastrevid were not changed in the form.  Still need to update all custom fields/title because they
-    // do not persist between updates.  Should be no need for a special message because the default WP post update message will be sent.
+    // wiki_title and wiki_lastrevid were not changed in the form.  Save disciplines and rating.  May have been no change, but no harm
+    // in resaving old values.  Could run a check in the future.
 
     } else {
     
@@ -881,7 +872,6 @@ add_action( 'admin_bar_menu', 'wrp_remove_admin_bar_comments', 999 );
 function wrp_clean_dashboard() {
   $user = wp_get_current_user();
   if ( ! $user->has_cap( 'manage_options' ) ) {
-    // remove_meta_box( 'dashboard_activity', 'dashboard', 'normal');
     remove_meta_box( 'dashboard_right_now', 'dashboard', 'normal' );
     remove_meta_box( 'dashboard_quick_press', 'dashboard', 'side' );
     remove_meta_box( 'dashboard_primary', 'dashboard', 'side' );
@@ -940,7 +930,7 @@ register_activation_hook( __FILE__, 'wrp_add_reviewer_role' );
 function wrp_add_review_caps() {
 
   // Array of default WordPress roles as well as the custom wrp_reviewer role.  Super admin not included.
-  $roles = array( 'administrator', 'editor', 'author', 'wrp_reviewer', 'subscriber' );
+  $roles = array( 'administrator', 'editor', 'author', 'contributor', 'wrp_reviewer', 'subscriber' );
 
   // Loop through each role and add capabilities
   foreach( $roles as $the_role ) {
@@ -961,7 +951,7 @@ function wrp_add_review_caps() {
         $role->add_cap( 'create_wrp_reviews' );
       }
 
-      // All roles above wrp_reviewer
+      // All roles above wrp_reviewer/contributor
       if ( $the_role == 'administrator' || $the_role == 'editor' || $the_role == 'author' ) {
         $role->add_cap( 'publish_wrp_reviews' );
       }
@@ -979,7 +969,5 @@ function wrp_add_review_caps() {
 }
 register_activation_hook( __FILE__, 'wrp_add_review_caps' );
 // add_action( 'admin_init', 'wrp_add_review_caps', 999 );
-
-
 
 ?>
