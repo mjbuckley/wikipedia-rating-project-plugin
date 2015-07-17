@@ -294,7 +294,7 @@ function wrp_create_wiki_disciplines_metabox( $post ) {
 <!-- not sure if I should use fieldset, div, or both with the way wordpress handles forms in admin.  Either way, be consistent -->
 <div>
   <fieldset>
-    <legend>Title here if WordPress doesn't handle it</legend>
+    <!-- <legend>Optional additional info here.</legend> -->
     <ul>
     <?php foreach($current_disciplines as $current_discipline) { // Loop through all disciplies and output as a checkbox
     $discipline_name = esc_attr( $current_discipline->name );
