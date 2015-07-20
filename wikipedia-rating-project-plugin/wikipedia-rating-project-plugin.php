@@ -623,14 +623,15 @@ function wrp_save_disciplines( $post_id ) {
   }
 }
 
-// Function below will remove post update message in all cases.  I still haven't got it working for only select cases yet.
+// Function below will remove post update message in all cases.  I still haven't got it working for only select cases yet.  Might
+// be a redirect issue, might be a priority issue.  Also, using an if statement to have it only run in some cases, but it still runs no
+// matter what.  If I can remove it entirely but only for wrp_review post_type then that would work fine, but not sure if that's possible.
 
 // function wrp_remove_update_message( $messages ) {
 //   unset($messages['post'][6]);
 //   return $messages;
 // }
-//add_filter( 'post_updated_messages', 'wrp_remove_update_message' );
-
+// add_filter( 'post_updated_messages', 'wrp_remove_update_message' );
 
 
 // save the meta box data
@@ -696,7 +697,6 @@ function wrp_save_rating( $post_id ) {
     $message = "error7";
     add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'my_message', $message, $loc ); } );
     
-
   // wiki_rating or wiki_title on form are not empty.  Now see if wiki_title and wiki_lastrevid have a currently saved value.
   // Save current values to $current_title and $current_lastrevid if the values exist, otherwise set them to false.
 
