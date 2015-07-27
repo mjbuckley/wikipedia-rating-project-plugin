@@ -20,3 +20,80 @@ In the past php had an option to automatically escape certain characters with a 
 
 The wordpress function add_magic_quotes uses the php function addslashes.
 The wordpress function stripslashes_deep uses the php function stripslashes.
+
+ALSO SEE wp_slash() and wp_unslash
+
+
+
+
+ADMIN CLEANUP: I originally had many functions cleaning up the appearance of the admin menu located in the plugin, but I made some changes.  Many of the cleanup functions were purley appearance based, so I moved them to the theme's functions.php file.  A few straddle the line, and I kept them grouped together and still in the plugin.  Finally, I removed some because they didn't affect the wrp_reviewer role, and I don't want to alter things for other roles.  They are below for reference in case I change my mind or find out I'm wrong about what they affected.
+
+// function wrp_remove_admin_bar_comments( $wp_admin_bar ) {
+//   $wp_admin_bar->remove_node( 'comments' );
+// }
+// add_action( 'admin_bar_menu', 'wrp_remove_admin_bar_comments', 999 );
+// // Remove tools menu from admin screen for all but admins.
+//
+// function wrp_remove_tools_menu() {
+//   $user = wp_get_current_user();
+//   if ( ! $user->has_cap( 'manage_options' ) ) {
+//     remove_menu_page( 'tools.php' );
+//   }
+// }
+// add_action( 'admin_menu', 'wrp_remove_tools_menu' );
+//
+// // Remove comments menu from admin screen for all but admins.
+// function wrp_remove_comments_menu() {
+//   $user = wp_get_current_user();
+//   if ( ! $user->has_cap( 'manage_options' ) ) {
+//     remove_menu_page( 'edit-comments.php' );
+//   }
+// }
+// add_action( 'admin_menu', 'wrp_remove_comments_menu' );
+
+ADMIN CLEANUP TO DO: I solved the problem of the incorrect post number count in a wrp_reviewer's admin screen by changing the css to not show those numbers.  I better fix would be to alter how those numbers are calculated.  This might be done with the views_edit-post filter and unset($views['mine']
+
+
+CHANGING POST UPDATED MESSAGE: I tried the below code.  Two weird things.  First, when checking the logs $post_type is being set at "post" for both posts and wrp_review.  In the db things are correct though.  Not sure if it's an issue with the function I'm using, or how I'm checking the id, but something is off.  Also, even though $post_type != wrp_review, the if statement still gets evaluated and the message removed.  Not sure about this.  Should I be using something different to compare strings (like string compare)?
+
+register_activation_hook( __FILE__, 'wrp_add_review_caps' );
+// add_action( 'admin_init', 'wrp_add_review_caps', 999 );
+
+add_filter( 'post_updated_messages', 'wrp_post_published' );
+function wrp_post_published( $messages ) {
+  $post_id = get_the_ID();
+  $post_type = get_post_type( $post_id );
+  if ( $post_type === 'wrp_review' ) {
+    unset($messages['post'][6]);
+    return $messages;
+  }
+  error_log(print_r($post_type, TRUE));
+}
+
+
+MAGIC QUOTES GIST
+
+From what I have seen, WP expects magic quotes (slashed data) everywhere that isn't the database or in the html (or functions that output to html).  Everywhere else magic quotes are expected.  Obviously double check before assuming this for anything critical, but this looks mostly correct.
+
+
+
+
+
+TO DO
+
+- Replace get_the_title() in custom message function with use of wiki_title term
+- Do I need to add nonce to disciplines form?
+- Set wrp plugin as a must use plugin for the theme.
+- Should I change how I'm saving things (the direct db inserts)?  I feel like yes, but not sure.
+- Figure out best practice for spacing/indentation/etc. for opening/closing <?php ?> tags mixed within html.
+- Be consistent with the add action/filters.  Either all before or after function, not a mix.
+- Go through plugin developers guide and make sure I'm not missing anything.
+- Make sure I'm following WordPress php standards.
+- Complete comment/gpl section: be sure to include site/author urls.
+- I think (not sure) there are two issues with inserting rating terms in init hook.  Not huge issue, but deal with eventually:
+  * Admins can never delete them if they want to, because they are always added back in.
+  * wp_insert term runs every time, even though it really only need to be done once.
+- Deal with uninstalls/deactivation.
+- Consider changing switch statement to an array in the custom admin notice function.
+- Messages have been updated and generally make sense and work.  However, they are still potentially confusing/missing stuff depending on how I handle the default WP messages that also show up.  Once I figure out what I'm doing with the WP messages then update these accordingly.
+- Ratings should have the same check before save that I use for disciplines (make sure impossible to add something that doesn't already exist).

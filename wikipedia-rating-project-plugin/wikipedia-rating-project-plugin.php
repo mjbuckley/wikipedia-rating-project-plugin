@@ -4,9 +4,10 @@ Plugin Name: Wikipedia Rating Project Plugin
 Plugin URI:
 Description: A plugin to rate Wikipedia pages in WordPress.
 Version: 0.1
-Author:
+Author: Michael Buckley
 Author URI:
 License: GPLv2
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 */
 
 /*
@@ -14,44 +15,11 @@ GPLv2 info goes here.
 */
 
 
-// NOTES:
-
-// useful for debugging when you cannont print to screen: error_log(print_r($tvariable_name, TRUE)).  Then run
-// "tail php_error.log" from the MAMP folder in the terminal.
-
-// Need to sanitize results from wiki api?
-
-// Learn and conform to WP coding style guidelines
-
-// ADD An uninstall option to the plugin.
-
-// Improve error/success messages.  Remove default WP message where needed.
-
-// NOTE: false is the same as an empty string.  Remember this when testing for things and setting variable to false.
-
-// way to include files: include( plugin_dir_path(__FILE__) . '/includes/wrp_wiki_test.php' );
-
-// Better understand query_var/figure out pagination (probably related topics)
-
-// I believe sanitize_title() is the right choice for clening title for post_name, but consider sanitize_title_with_dashes()
-// if something doesn't work properly.
-
-// With wikipedia changing to https only, do I need to change anything with the api requiest address?
-
-// Right now the wiki_check is skipped on autosave, which basically makes sense, but I could set up a smart one that never changes a title,
-// but which does save stuff if nothing has changed.
-
-// I use an anonymous function I found and modified to add a query arg that contains key to a custom admin message.  The function takes
-// a $loc argument.  However, I never pass one to the function, and I don't think it gets passed any other way.  I think it is just an
-// optional redirect location that I don't use.  Make sure my understanding is correct, and if so, remove it.
-
-// There should probably be a check on the wiki test to make sure at least a title is included.
-
-// do same verification for ratings as I did for disciplines
+require_once( plugin_dir_path( __FILE__ ) . 'includes/wrp_wiki_test.php');
 
 
 // Register custom post type for reviews
-function wrp_review_create_post_type() {
+function wrp_create_review_post_type() {
   $labels = array( 
     'name' => 'Reviews',
     'singular_name' => 'Review',
@@ -80,7 +48,7 @@ function wrp_review_create_post_type() {
       'wiki_disciplines',
       'wiki_pageid',
     ),
-    // Below is needed for custom roles
+    // Below is needed for the custom wiki_reviewer role
     'capability_type' => '',
     'capabilities' => array(
       'edit_post' => 'edit_wrp_review',
@@ -103,7 +71,7 @@ function wrp_review_create_post_type() {
   );
   register_post_type( 'wrp_review', $args );
 }
-add_action( 'init', 'wrp_review_create_post_type' );
+add_action( 'init', 'wrp_create_review_post_type' );
 
 
 // Register custom taxonomies
@@ -206,43 +174,49 @@ function wrp_create_taxonomies() {
 add_action( 'init', 'wrp_create_taxonomies', 0 );
 
 
-// Add custom meta box adding review info
-function wrp_add_meta_boxes() {
+// Add custom meta box for adding wiki_title, wiki_lastrevid, and wiki_rating
+function wrp_add_page_info_meta_box() {
   add_meta_box(
-    'wrp_wiki_rating_metabox',
+    'wrp_wiki_rating_meta_box',
     'Wikipedia Article Information:',
-    'wrp_create_wiki_rating_metabox',
+    'wrp_create_page_info_meta_box',
     'wrp_review',
     'normal',
     'high'
   );
 }
-add_action( 'add_meta_boxes', 'wrp_add_meta_boxes' );
+add_action( 'add_meta_boxes', 'wrp_add_page_info_meta_box' );
 
 
-// Display code for meta box in admin screen
-function wrp_create_wiki_rating_metabox( $post ) {
+// Display code for the Wikipedia page info meta box (page title, lastrevid, and rating)
+function wrp_create_page_info_meta_box( $post ) {
   
   // add nonce for security
-  wp_nonce_field( 'wrp_meta_box', 'wrp_meta_box_nonce' ); ?>
+  wp_nonce_field( 'wrp_meta_box', 'wrp_meta_box_nonce' );
 
-  <!-- get_the_terms() returns false if post doesn't exists or doesn't contain the term, otherwise returns an array of term objects.
-  There should only be one title, but array pop ensures this. -->
+  // Get currently saved values, if they exist
+
+  // wiki_title and post_title should be the same, but it might be possible that in rare instances they could be slightly different or that
+  // post_title could be empty (reverted back to draft and resaved), so I wiki_title.
+  $saved_titles = get_the_terms( $post->ID, 'wiki_title'); // returns false if post doesn't exists or doesn't contain the term
+  $saved_title = $saved_titles ? array_pop($saved_titles) : false;
+
+  // The true parameter in get_post_meta() means that only the first value is returned (although there
+  // should only be one), and it returns value as a string instead of as an array. If key (lastrevid) does
+  // not exist, then an empty string will be returned.
+  $saved_lastrevid = get_post_meta( $post->ID, 'lastrevid', true );
+
+  // hide_empty set to 0 ensures that ratings are shown even if they haven't been used yet.
+  $rating_terms = get_terms( 'wiki_rating', array( 'hide_empty' => 0 ) );
+  ?>
+
   <div>
-    <?php
-      $saved_titles = get_the_terms( $post->ID, 'wiki_title');
-      $saved_title = $saved_titles ? array_pop($saved_titles) : false;
-    ?>
     <label for="meta_box_titile">Wikipedia Article Title</label>
     <br />
     <input type="text" name="wiki_title" id="meta_box_title" value="<?php if ($saved_title){echo esc_attr( $saved_title->name );} ?>" />
   </div>
 
-  <!-- The true parameter in get_post_meta() means that only the first value is returned (although there
-    should only be one), and it returns value as a string instead of as an array. If key (lastrevid) does
-    not exist, then an empty string will be returned. -->
   <div>
-    <?php $saved_lastrevid = get_post_meta( $post->ID, 'lastrevid', true ); ?>
     <label for="meta_box_lastrevid">Lastrevid (leave blank to grab current)</label>
     <br />
     <input type="text" name="lastrevid" id="meta_box_lastrevid" value="<?php echo esc_attr( $saved_lastrevid ); ?>" />
@@ -251,26 +225,21 @@ function wrp_create_wiki_rating_metabox( $post ) {
   <div>
     <label for="meta_box_rating">Rating</label>
     <select name="wiki_rating" id="meta_box_rating">
-    <?php
-    // hide_empty set to 0 ensures that ratings are shown even if they haven't been used yet.
-    $rating_terms = get_terms( 'wiki_rating', array( 'hide_empty' => 0 ) );
-
-    foreach($rating_terms as $rating_term) { ?>
-
-    <option value="<?php echo esc_attr( $rating_term->name ); ?>"<?php if ( has_term($rating_term->name, 'wiki_rating') ){echo " selected";} ?>><?php echo esc_html( $rating_term->name ); ?></option>
+    <?php foreach($rating_terms as $rating_term) { // loop through each rating term and add to drop down list ?>
+      <option value="<?php echo esc_attr( $rating_term->name ); ?>"<?php if ( has_term($rating_term->name, 'wiki_rating') ){echo " selected";} ?>><?php echo esc_html( $rating_term->name ); ?></option>
     <?php } ?> <!-- end foreach -->
     </select>
   </div>
 
-<?php }
+<?php } // End wrp_create_page_info_meta_box()
 
 
-// Add custom disciplines meta box
+// Add custom meta box for adding wiki_disciplines
 function wrp_add_disciplines_meta_boxes() {
   add_meta_box(
-    'wrp_wiki_displines_metabox',
+    'wrp_wiki_displines_meta_box',
     'Disciplines',
-    'wrp_create_wiki_disciplines_metabox',
+    'wrp_create_wiki_disciplines_meta_box',
     'wrp_review',
     'normal',
     'default'
@@ -279,56 +248,56 @@ function wrp_add_disciplines_meta_boxes() {
 add_action( 'add_meta_boxes', 'wrp_add_disciplines_meta_boxes' );
 
 
-// Display code for discipline meta box in admin screen
-function wrp_create_wiki_disciplines_metabox( $post ) {
-  $current_disciplines = get_terms( 'wiki_disciplines', array( 'hide_empty' => 0 ) ); // Array of objects of all disciplines, not just those associated with post.
-  $saved_disciplines = get_the_terms( $post->ID, 'wiki_disciplines' ); // Array of objects of all disciplines currently associated with this post_id.
-  $saved_disciplines_array = array();
+// Display code for displaying discipline meta box
+function wrp_create_wiki_disciplines_meta_box( $post ) {
 
-  if ( $saved_disciplines && !is_wp_error( $saved_disciplines )) { // Create array of term_ids of of discipline terms currently associated with post.
+  // Code below is used to create an array ($save_disciplines_array) of term ids for each wiki_disciplines currently associated with the post.
+  $saved_disciplines = get_the_terms( $post->ID, 'wiki_disciplines' ); // Array of objects of each wiki_disciplines currently associated with this post_id.
+  $saved_disciplines_array = array();
+  if ( $saved_disciplines && !is_wp_error( $saved_disciplines )) {
     foreach ($saved_disciplines as $saved_discipline) {
       $saved_disciplines_array[] = $saved_discipline->term_id;
     }
   } ?>
 
-<!-- not sure if I should use fieldset, div, or both with the way wordpress handles forms in admin.  Either way, be consistent -->
 <div>
   <fieldset>
-    <!-- <legend>Optional additional info here.</legend> -->
     <ul>
-    <?php foreach($current_disciplines as $current_discipline) { // Loop through all disciplies and output as a checkbox
-    $discipline_name = esc_attr( $current_discipline->name );
-    $discipline_term_id = (int) $current_discipline->term_id; // This would be a string if I didn't change it.  Done correctly/need to change in first place?
-    $discipline_css_id = "discipline_" . $discipline_term_id; // Create unique id for each form checkbox.  Ex: discipline_123 for a discipline with term_id 123.
-    ?>
-      <li>
-        <input type="checkbox" name="disciplines[]" value="<?php echo $discipline_term_id; ?>" id="<?php echo $discipline_css_id; ?>"<?php if ( in_array( $discipline_term_id, $saved_disciplines_array )) { echo " checked"; } ?> />
-        <label for="<?php echo $discipline_css_id; ?>"><?php echo $discipline_name; ?></label>
-      </li>
-    <?php } ?>
+      <?php
+      // Below code is used to loop through an array of all wiki_disciplines term objects, outputting a checkbox for each term, giving each
+      // check box a unique css id, a value equal to the term's term_id, and checking the box if it is currently associtated with the post.
+      $current_disciplines = get_terms( 'wiki_disciplines', array( 'hide_empty' => 0 ) ); // Array of objects of all wiki_disciplines
+      foreach($current_disciplines as $current_discipline) { // Loop through all disciplies and output as a checkbox
+        $discipline_name = esc_attr( $current_discipline->name );
+        $discipline_term_id = (int) $current_discipline->term_id; // Was outputting as string without (int)
+        $discipline_css_id = "discipline_" . $discipline_term_id;
+        ?>
+        <li>
+          <input type="checkbox" name="disciplines[]" value="<?php echo $discipline_term_id; ?>" id="<?php echo $discipline_css_id; ?>"<?php if ( in_array( $discipline_term_id, $saved_disciplines_array )) { echo " checked"; } ?> />
+          <label for="<?php echo $discipline_css_id; ?>"><?php echo $discipline_name; ?></label>
+        </li>
+      <?php } ?> <!-- End foreach -->
     </ul>
   </fieldset>
 </div>
 
-<?php } // End wrp_create_wiki_disciplines_metabox()
+<?php } // End wrp_create_wiki_disciplines_meta_box()
 
 
 // Admin notice functions.
 
-add_action( 'admin_notices', 'my_notices' );
+add_action( 'admin_notices', 'wrp_custom_notices' );
 
-// Checks for presence of custom admin message and displays it
-// Consider changing switch statement to an array?
-// Probably don't need to sanitize $_GET['my_message'] since it is never used only checked, but what would be the best way if I did?
+// Checks for presence of the my_message query arg, and if present displays the message associated with it.
 // Consider possibilities if someone passed a fake my_message.
-function my_notices() {
+function wrp_custom_notices() {
   if ( ! isset( $_GET['my_message'] ) ) {
     return;
   } else {
     $message_value = $_GET['my_message'];
     $message_check = "success";
 
-    // Creates link to wikipedia page if the message contains "success"
+    // If the message contains "success", create a link to the rated Wikipedia page
     if (strpos($message_value, $message_check) !== false) {
       $title = get_the_title();
       $encode_title = rawurlencode($title);
@@ -336,13 +305,14 @@ function my_notices() {
       $lastrevid_link = 'http://en.wikipedia.org/w/index.php?title=' . $encode_title . '&oldid=' . $lastrevid;
     }
 
+    // Some cases have the same message, but they are brought about by different situations.  Kept seperate for debugging purposes.
     switch($message_value) {
       case "error1":
         $message = "There is no Wikipedia article with the title that you entered.  Please double check the spelling and capitalization and try again.";
         $class = "error";
         break;
       case "error2":
-        $message = "There was an error communicating with Wikipedia.  The text of your review has been saved as a draft.  Please trying submitting again later.";
+        $message = "There was an error communicating with Wikipedia.  Please trying submitting again later.";
         $class = "error";
         break;
       case "error3":
@@ -350,271 +320,96 @@ function my_notices() {
         $class = "error";
         break;
       case "error4":
-        $message = "The lastrevid and title do not match.  Please recheck the number and title and try again.";
+        $message = "The lastrevid and title that you entered do not match.  Please recheck the number and title and try again.";
         $class = "error";
         break;
       case "error5":
-        $message = "The lastrevid points to a redirect page and cannot be saved.";
+        $message = "The lastrevid that you entered points to a redirect page and cannot be saved.";
         $class = "error";
         break;
       case "error6":
-      // Same as error2, but brought about by different situation.  Keep separate for debugging purposes.
-        $message = "There was an error communicating with Wikipedia.  The text of your review has been saved as a draft.  Please trying submitting again later.";
+        $message = "There was an error communicating with Wikipedia.  Please trying submitting again later.";
         $class = "error";
         break;
       case "error7":
-        $message = "The Wikipedia article title and/or the rating are not filled out.  Please be sure both fields are complete and try again.";
+        $message = "The Wikipedia article title and/or the rating is not filled out.  Please be sure both fields are complete and try again.";
         $class = "error";
         break;    
       case "success1":
-        $message = "Title has been changed to '{$title}.'  Lastrevid is: {$lastrevid}.  Also, This looks like it might be a disambiguation page.";
+        $message = "The title has been changed to '{$title}.'  The lastrevid is: {$lastrevid}.  Also, this looks like it might be a disambiguation page.  Please click on the link to the reviewed Wikipedia page and verify that this is the page that you intended to review.";
         $class = "updated";
         break;
       case "success2":
-        $message = "Title has been changed to '{$title}.'  Lastrevid is: {$lastrevid}.";
+        $message = "The title has been changed to '{$title}.'  The lastrevid is: {$lastrevid}.";
         $class = "updated";
         break;
       case "success3":
-        $message = "This looks like it might be a disambiguation page.  Lastrevid is: {$lastrevid}.";
+        $message = "The title has been saved as '{$title}.'  The lastrevid is: {$lastrevid}.  Also, this looks like it might be a disambiguation page.  Please click on the link to the reviewed Wikipedia page and verify that this is the page that you intended to review.";
         $class = "updated";
         break;
       case "success4":
-        $message = "Lastrevid is: {$lastrevid}.";
+        $message = "The title has been saved as '{$title}.'  The lastrevid is: {$lastrevid}.";
         $class = "updated";
         break;
       case "success5":
-        $message = "This looks like it might be a disambiguation page.  Title has been changed to '{$title}'.";
+        $message = "The title has been changed to '{$title}.'  The lastrevid is: {$lastrevid}.  Also, this looks like it might be a disambiguation page.  Please click on the link to the reviewed Wikipedia page and verify that this is the page that you intended to review.";
         $class = "updated";
         break;
       case "success6":
-        $message = "Title has been changed to '{$title}'.";
+        $message = "The title has been changed to '{$title}.'  The lastrevid is: {$lastrevid}.";
         $class = "updated";
         break;
       case "success7":
-        $message = "This might be a disambiguation page.";
+        $message = "The title has been saved as '{$title}.'  The lastrevid is: {$lastrevid}.  Also, this looks like it might be a disambiguation page.  Please click on the link to the reviewed Wikipedia page and verify that this is the page that you intended to review.";
         $class = "updated";
         break;
       case "success8":
-        $message = "Everything's good";
+        $message = "The title has been saved as '{$title}.'  The lastrevid is: {$lastrevid}.";
         $class = "updated";
         break;
+      default:
+        return; // Ends function in case of an unexpected value.
     } // End switch     
     ?>
 
     <div class="<?php echo $class ?>">
       <p><?php echo $message ?></p>
       <?php if( $class === 'updated' ) { ?>
-        <p><a href="<?php echo $lastrevid_link; ?>">Link to Wikipedia page</a></p>
+        <p><a href="<?php echo $lastrevid_link; ?>">Link to the reviewed Wikipedia page</a></p>
       <?php } // end if ?>
     </div>
 
     <?php
   }
-} // End my_notices()
+} // End wrp_custom_notices()
 
 
-
-// START WRP_WIKI_TEST: EVENTUALLY SEPERATE THIS AN OTHERS OUT.
-
-function wrp_wiki_test( $test_title, $test_lastrevid ) {
-
-  // No lastrevid given so grab the current one
-
-  if (empty($test_lastrevid)) {
-    $title_base = 'http://en.wikipedia.org/w/api.php?format=json&action=query&titles=';
-    $title_ending = '&prop=info|categories&clcategories=category:%20disambiguation%20pages&redirects';
-    $encode_title = rawurlencode($test_title);
-    $title_url = $title_base . $encode_title . $title_ending; // Wikipedia API request
-    $title_response = wp_remote_get($title_url); // Raw response from Wikipedia API
-    if( is_array($title_response) && !is_wp_error($title_response) ) {  // Verify response is in form we expect and not WP Error
-      $body = $title_response['body']; // Strip response header
-      $title_decoded = json_decode($body, true); // Convert to a PHP useable JSON form
-      $pre_info = $title_decoded["query"]["pages"];
-      $pre_pages_value = array_keys($pre_info);
-      $pages_value = $pre_pages_value[0];
-
-      // Make sure that the user supplied title exists.  A $pages_value of -1 means there is no Wikipedia article with that title.
-
-      if ($pages_value == -1) {
-        $message = "error1";
-        // "There is no Wikipedia article with the title that you entered.  Please check the title and try again."
-        return array( 'error' => true, 'message' => $message );
-      }
-
-      // User supplied title exists.  Now check if title is a disambiguation or redirect page, or if it needs to be normalized.
-      // Also grab lastrevid.
-
-      else {
-        $lastrevid = $pre_info[$pages_value]["lastrevid"];
-        $redirect_normalization_test = $title_decoded['query'];
-        // Checks if given title is a redirect page. API will grab target of redirect, but will want to fix title.
-        $redirect = array_key_exists('redirects', $redirect_normalization_test) ? true : false;
-        $disambiguation_test = $pre_info[$pages_value];
-        // Here is how the disambiguation test works: The API request is set to check if the page belongs to the category
-        // 'Disambiguation pages'.  If it does, the categories key will be present in the response, otherwise it won't.
-        $disambiguation = array_key_exists('categories', $disambiguation_test) ? true : false;
-        $normalization = array_key_exists('normalized', $redirect_normalization_test) ? true : false; // Check if page title has been normalized.
-        $pageid = $pre_info[$pages_value]["pageid"];
-
-        if ($disambiguation && ($redirect || $normalization)) {
-          // Could be a disambiguation page.  Title changed as a result of normalization or redirect.  Save but alert user.
-          $new_title = $disambiguation_test['title'];
-          $message = "success1";
-          // "Title has been changed from '{$test_title}' to '{$new_title}.'  Lastrevid is: {$lastrevid}.  Also, This looks like it might be a disambiguation page."
-          return array( 'error' => false, 'lastrevid' => $lastrevid, 'title' => $new_title, 'pageid' => $pageid, 'message' => $message );
-        }
-        elseif ($redirect || $normalization) {
-          // Title changed as a result of normalization or redirect.
-          $new_title = $disambiguation_test['title'];
-          $message = "success2";
-          // "Title has been changed from '{$test_title}' to '{$new_title}.'  Lastrevid is: {$lastrevid}."
-          return array( 'error' => false, 'lastrevid' => $lastrevid, 'title' => $new_title, 'pageid' => $pageid, 'message' => $message );
-        }
-        elseif ($disambiguation) {
-          // Could be a disambiguation page.  Save but alert user.
-          $message = "success3";
-          // "This looks like it might be a disambiguation page.  Lastrevid is: {$lastrevid}."
-          return array( 'error' => false, 'lastrevid' => $lastrevid, 'title' => $test_title, 'pageid' => $pageid, 'message' => $message );
-          
-        }
-        else {
-          // Everything checks out perfectly.
-          $message = "success4";
-          // "Lastrevid is: {$lastrevid}."
-          return array( 'error' => false, 'lastrevid' => $lastrevid, 'title' => $test_title, 'pageid' => $pageid, 'message' => $message );
-        }
-      }
-    } else {
-      // WP Error or an unexpected type of response from Wikipedia API.  Prompt user to try again later.
-      $message = "error2";
-      // "There was an error communicating with Wikipedia.  The text of your review has been saved as a draft.  Please trying submitting again later."
-      return array( 'error' => true, 'message' => $message );
-    }
-
-
-  // Lastrevid has been given, so check that it is valid and that it matches the given title.
- 
-  } else {
-    $lastrevid_base = 'http://en.wikipedia.org/w/api.php?action=query&format=json&revids=';
-    $lastrevid_ending = '&prop=info|categories&clcategories=category:%20disambiguation%20pages';
-    $encode_lastrevid = rawurlencode($test_lastrevid);
-    $lastrevid_url = $lastrevid_base . $encode_lastrevid . $lastrevid_ending;
-    $lastrevid_response = wp_remote_get($lastrevid_url);
-    if( is_array($lastrevid_response) && !is_wp_error($lastrevid_response) ) {  // Verify response is in form we expect and not WP Error
-      $body = $lastrevid_response['body']; // Strip response header
-      $lastrevid_decoded = json_decode($body, true); // Convert to a PHP useable JSON form
-      $query_array = $lastrevid_decoded["query"];
-
-      // Make sure lastrevid is real.  A bad lastrevid has no "pages" key.
-
-      if (!array_key_exists("pages", $query_array)) { // Lastrevid doesn't exist
-        $message = "error3";
-        // "The lastrevid that you entered does not exist.  Please recheck the number and try again."
-        return array( 'error' => true, 'message' => $message );
-      }
-
-      // Lastrevid exists
-
-      else {
-        $pre_info = $query_array["pages"];
-        // current() returns the value of the array element that's currently being pointed to by the internal pointer.
-        // Since responses should only have one 1 value here, this works to grabs the array that we need.
-        $info = current($pre_info);
-        $title = $info["title"];
-
-        // Verify that entered title matches the title the API has associated with the lastrevid
-        if (strtolower($test_title) !== strtolower($title)) {
-
-          // Title for the lastrevid does not equal title supplied by user
-          $message = "error4";
-          // "The title associated with the lastrevid does not match the given title"
-          return array( 'error' => true, 'message' => $message );
-        }
-
-        // Lastrevid points to a redirect page.  Redirect page's lastrevids do not change their lastrevid to mirror changes in their target page.
-        // So there is no way to know what edit the user intends to being reviewing.
-        elseif (array_key_exists("redirect", $info)) {
-          $message = "error5";
-          // "The lastrevid points to a redirect page and cannot be saved."
-          return array( 'error' => true, 'message' => $message );
-        }
-
-        // All is basically good.  Check for differences in capitalization, the possiblitiy of being a disambiguation page, and grab pageid.
-        else {
-          $pageid = $info["pageid"];
-
-          // Titles match but differ in capitalization 
-          if ($test_title !== $title) { 
-
-            // Probaly a disambiguation page.  Title capitalization has been changed.  Save, but alert user.
-            if (array_key_exists("categories", $info)) {
-              $message = "success5";
-              // "This looks like it might be a disambiguation page.  Title has been changed to from '{$test_title}' to '{$title}'."
-              return array( 'error' => false, 'lastrevid' => $test_lastrevid, 'title' => $title, 'pageid' => $pageid, 'message' => $message );
-            }
-
-            // Titles differ in capitalization, but all else good.  Save, but alert user.
-            else {
-              $message = "success6";
-              // "Title has been changed from '{$test_title}' to '{$title}'."
-              return array( 'error' => false, 'lastrevid' => $test_lastrevid, 'title' => $title, 'pageid' => $pageid, 'message' => $message );
-            }
-          }
-
-          // Titles are a perfect match.
-          else {
-
-            // Probably a disambiguation page.  Save, but alert user.
-            if (array_key_exists("categories", $info)) {
-              $message = "success7";
-              // "This might be a disambiguation page."
-              return array( 'error' => false, 'lastrevid' => $test_lastrevid, 'title' => $test_title, 'pageid' => $pageid, 'message' => $message );
-            }
-
-            // Everything matches up perfectly.
-            else {
-              $message = "success8";
-              // "Everything's good"
-              return array( 'error' => false, 'lastrevid' => $test_lastrevid, 'title' => $test_title, 'pageid' => $pageid, 'message' => $message );
-            }
-          }
-        }
-      }
-    } else {
-      // WP Error or unexpected type of response from Wikipedia API.  Prompt user to try again later.
-      $message = "error6";
-      // "There was an error communicating with Wikipedia.  The text of your review has been saved as a draft.  Please trying submitting again later."
-      return array( 'error' => true, 'message' => $message );
-    }
-  }
-}
-
-// End WRP_WIKI_TEST
-
-
-
-// Function for validating and saving ratings.  Called from within wrp_save_rating.  SHOULD IMPROVE NAMES of both of these.
-// This makes sure that a discipline can only be saved if it already exists (added in admin screen by an admin).
-// Prevents the unlikely possibility of someone using something like curl to add unofficial (possibly malicious) disciplines to save.
-
+// Save wiki_disciplines from disciplines meta box.  Called from within wrp_save_rating().
 function wrp_save_disciplines( $post_id ) {
 
   if ( empty( $_POST['disciplines'] )) {
-    wp_set_object_terms( $post_id, null, 'wiki_disciplines' );
+    wp_set_object_terms( $post_id, null, 'wiki_disciplines' ); // Clears previously saved values, if they exist.
   } else {
-    $submitted_disciplines = $_POST['disciplines'];
+
+    // Create array ($current_disciplines_array) of all term_ids of all disciplines
     $current_disciplines = get_terms( 'wiki_disciplines', array( 'hide_empty' => 0 ) );
     $current_disciplines_array = array();
-    $to_save_disciplines = array();
     foreach($current_disciplines as $current_discipline) {
       $current_disciplines_array[] = (int) $current_discipline->term_id; // Cast as int because get_terms returns as string
-    } // current_disiplines_array now contains array of all term_ids of all disciplines.
+    }
+
+    // Create array ($to_save_disciplines) of all term_ids for disciplines submitted in meta box.  Verifies that each value matches a
+    // current discipline before adding to array.  Prevents reviewers from adding their own disciplines.
+    $submitted_disciplines = $_POST['disciplines'];
+    $to_save_disciplines = array();
     foreach ($submitted_disciplines as $submitted_discipline) {
       $sanitized_discipline = sanitize_text_field( $submitted_discipline );
       if ( in_array( $sanitized_discipline, $current_disciplines_array )) { // Makes sure submited discipline matches on of the official disciplines
         $to_save_disciplines[] = (int) $submitted_discipline;
       }
     }
+
+    // Save disciplines
     if ( empty( $to_save_disciplines )) {
       wp_set_object_terms( $post_id, null, 'wiki_disciplines' );
     } else {
@@ -623,68 +418,49 @@ function wrp_save_disciplines( $post_id ) {
   }
 }
 
-// Function below will remove post update message in all cases.  I still haven't got it working for only select cases yet.  Might
-// be a redirect issue, might be a priority issue.  Also, using an if statement to have it only run in some cases, but it still runs no
-// matter what.  If I can remove it entirely but only for wrp_review post_type then that would work fine, but not sure if that's possible.
-
-// function wrp_remove_update_message( $messages ) {
-//   unset($messages['post'][6]);
-//   return $messages;
-// }
-// add_filter( 'post_updated_messages', 'wrp_remove_update_message' );
-
-
-// save the meta box data
-
-
-// NOTES:
-// -Not sure that user permissions are set up correctly.  Probably need to reference the cutom post type somewhere, not just
-// a generic post reference. Not sure.
-// -I think chceking for presence of wrp_meta_box_nonce at the start is enough to make this not run on other types
-// of posts/pages, but be sure.
-// Function doesn't run on autosave, but what about drafts/other?
-// DEAL WITH INFINITE LOOP issue with wp_update_post
-
-
-// Function Info:
-// wrp_save_rating is a function that hooks on to the save post action and runs immediately after a post of the wrp_review post type
-// has been saved.  It runs validation on the custom meta data associated with the post.  It does the following:
+//ADD RETURNS?
+// wrp_save_rating() overview:
+//
+// It runs validation on the custom meta data associated with the post and ensures the folowing:
 // -Makes sure required fields are filled in.
-// -Verifie that the required information is correct and grabs any needed information by running the wrp_wiki_check function if needed.
+// -Verifies that the required information is correct and grabs any needed information by running the wrp_wiki_check function if needed.
 // -Passes on any messages/errors to the user
 // -Saves meta data if information is good.
-// -Does not save meta data if information is bad.  Rolls back post_status to draft, but keeps the text content of the review.
+// -Does not save meta data if information is bad.  Rolls back post_status to draft (but keeps the text content of the review).
+// -Sets wiki_title as post_title and also genrates a unique post_name slug based on post_title.
 
 add_action( 'save_post','wrp_save_rating' );
 
 function wrp_save_rating( $post_id ) {
-
-  // Basic security/capability checks
 
   // Check if nonce is set and valid
   if( !isset( $_POST['wrp_meta_box_nonce'] ) || !wp_verify_nonce( $_POST['wrp_meta_box_nonce'], 'wrp_meta_box' ) ) {
     return;
   }
 
-  // If this is an autosave, our form has not been submitted, so we don't want to do anything.
+  // Don't do anything if this is an autosave
   if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
     return;
   }
 
   // Check the user's permissions.
-  if ( isset( $_POST['post_type'] ) && 'page' == $_POST['post_type'] ) {
-    if ( ! current_user_can( 'edit_page', $post_id ) ) {
-      return;
-    }
-  } else {
-    if ( ! current_user_can( 'edit_post', $post_id ) ) {
-      return;
-    }
+  if ( !current_user_can( 'edit_wrp_reviews', $post_id ) ) {
+    return;
   }
 
+  // if ( isset( $_POST['post_type'] ) && 'page' == $_POST['post_type'] ) {
+  //   if ( ! current_user_can( 'edit_page', $post_id ) ) {
+  //     return;
+  //   }
+  // } else {
+  //   if ( ! current_user_can( 'edit_post', $post_id ) ) {
+  //     return;
+  //   }
+  // }
 
-  // Make sure that wiki_rating and wiki_title values on submitted form are not empty.  ERROR MESSAGE SHOULD BE IMPROVED.
-  // Error could also be if there is some sort of from/submission error.
+
+
+  // Make sure that required fields (wiki_rating and wiki_title) are not empty.
 
   if ( !isset($_POST['wiki_rating']) || empty($_POST['wiki_rating']) || !isset($_POST['wiki_title']) || empty($_POST['wiki_title']) ) {
 
@@ -693,12 +469,12 @@ function wrp_save_rating( $post_id ) {
     $wpdb->update( $wpdb->posts, array("post_status" => "draft"), array("ID" => $post_id), array("%s"), array("%d") );
 
     // Pass error message to user:
-    // "The Wikipedia article title and/or the rating are not filled out.  Please complete those fields and try again."
     $message = "error7";
     add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'my_message', $message, $loc ); } );
     
-  // wiki_rating or wiki_title on form are not empty.  Now see if wiki_title and wiki_lastrevid have a currently saved value.
-  // Save current values to $current_title and $current_lastrevid if the values exist, otherwise set them to false.
+  // wiki_rating and wiki_title are not empty.  Now see if those values are new or if they are the same the currently saved values.
+  // Save current values to $current_title and $current_lastrevid (if the values exist, otherwise set them to false) and compare to
+  // submitted values.
 
   } else {
     $pre_old_title_value = get_the_terms( $post_id, 'wiki_title');
@@ -717,7 +493,7 @@ function wrp_save_rating( $post_id ) {
     }
 
     // Due to a weird WordPress quirk, magic quotes are added to $_POST values (and some other things).  This means that
-    // Fool's gets changed to Fool\'s.  This needs to be removed or else the wikipedia api will get the wrong info.
+    // Fool's gets changed to Fool\'s.  This needs to be removed or else the wikipedia api could get the wrong info.
     // stripslashes_deep() is a WP function that does this.
     $pre_new_title_value = stripslashes_deep( $_POST['wiki_title'] );
     $new_title_value = sanitize_text_field( $pre_new_title_value );
@@ -822,97 +598,8 @@ function wrp_save_rating( $post_id ) {
 }
 
 
-
-// Stuff below cleans up admin menu.  Ideally some of these things should be a bit more targeted.  Ex: comments remove from admin toolbar
-// only for our custom role, not everyone.  Important if other people want to use the plugin.
-
-
-// Remove comments menu from admin screen for all but admins.
-function wrp_remove_comments_menu() {
-  $user = wp_get_current_user();
-  if ( ! $user->has_cap( 'manage_options' ) ) {
-    remove_menu_page( 'edit-comments.php' );
-  }
-}
-add_action( 'admin_menu', 'wrp_remove_comments_menu' );
-
-
-// Remove tools menu from admin screen for all but admins.
-function wrp_remove_tools_menu() {
-  $user = wp_get_current_user();
-  if ( ! $user->has_cap( 'manage_options' ) ) {
-    remove_menu_page( 'tools.php' );
-  }
-}
-add_action( 'admin_menu', 'wrp_remove_tools_menu' );
-
-// Only show posts editable by the user in the admin screen.
-function wrp_only_author_posts( $wp_query ) {
-  global $current_user;
-  if( is_admin() && !current_user_can('edit_others_posts') ) {
-    $wp_query->set( 'author', $current_user->ID );
-  }
-}
-add_action('pre_get_posts', 'wrp_only_author_posts' );
-
-
-function wrp_remove_wp_logo( $wp_admin_bar ) {
-  $wp_admin_bar->remove_node( 'wp-logo' );
-}
-add_action( 'admin_bar_menu', 'wrp_remove_wp_logo', 999 );
-
-
-function wrp_remove_admin_bar_comments( $wp_admin_bar ) {
-  $wp_admin_bar->remove_node( 'comments' );
-}
-add_action( 'admin_bar_menu', 'wrp_remove_admin_bar_comments', 999 );
-
-
-// Clean up dashboard for non-admins
-function wrp_clean_dashboard() {
-  $user = wp_get_current_user();
-  if ( ! $user->has_cap( 'manage_options' ) ) {
-    remove_meta_box( 'dashboard_right_now', 'dashboard', 'normal' );
-    remove_meta_box( 'dashboard_quick_press', 'dashboard', 'side' );
-    remove_meta_box( 'dashboard_primary', 'dashboard', 'side' );
-  }
-}
-add_action( 'wp_dashboard_setup', 'wrp_clean_dashboard' );
-
-
-// Removes the post number count on the listing of a users review. The number shown reflects all reviews on site rather than the
-// number of reviews by the user.  This is confusing.  Method below is a temp measure.  Consider actually fixing how the numbers
-// are calculated rather than just hiding them (possibly with views_edit-post filter and unset($views['mine']), although this works
-// fine for now.  Also, removes 'mine' tab, because in this case 'mine' and 'all' refer to same thing.
-
-function wrp_improve_reviews_tabs() {
-  $user = wp_get_current_user();
-  if ( ! $user->has_cap( 'manage_options' ) ) {
-    $css  = '<style>.subsubsub a .count { display: none; }</style>';
-    $css2 = '<style>.subsubsub .mine { display: none; }</style>';
-
-    echo $css;
-    echo $css2;
-  }
-}
-add_action( 'admin_head', 'wrp_improve_reviews_tabs' );
-
-// Grabbed this code for replacing the howdy greeting.  Works, feel like there should be a better way.
-function wrp_replace_howdy( $wp_admin_bar ) {
-  $my_account=$wp_admin_bar->get_node('my-account');
-  $newtitle = str_replace( 'Howdy,', 'Welcome,', $my_account->title );
-  $wp_admin_bar->add_node( array(
-    'id' => 'my-account',
-    'title' => $newtitle,
-    )
-  );
-}
-add_filter( 'admin_bar_menu', 'wrp_replace_howdy', 25 );
-
-
-// Create new reviewer role, then add capabilites to users.  NOTE: I believe the order of register_activation_hook matters.
-// The one creating the roles must come before the one adding the caps.
-
+// Create new wrp_reviewer role. wrp_review caps are added in a seperate function ( wrp_add_review_caps() ).  NOTE: I believe that the
+// register_activation_hook used for adding this role must come before the register_activation_hook adding wrp_review caps.
 function wrp_add_reviewer_role() {
   remove_role( 'wrp_reviewer' );
   add_role( 'wrp_reviewer', 'Reviewer', array(
@@ -929,7 +616,7 @@ register_activation_hook( __FILE__, 'wrp_add_reviewer_role' );
 // Add capabilities for the for wrp_review type
 function wrp_add_review_caps() {
 
-  // Array of default WordPress roles as well as the custom wrp_reviewer role.  Super admin not included.
+  // Array of default WordPress roles as well as the custom wrp_reviewer role.
   $roles = array( 'administrator', 'editor', 'author', 'contributor', 'wrp_reviewer', 'subscriber' );
 
   // Loop through each role and add capabilities
@@ -960,14 +647,51 @@ function wrp_add_review_caps() {
       if ( $the_role == 'administrator' || $the_role == 'editor' ) {
         $role->add_cap( 'edit_others_wrp_reviews' );
         $role->add_cap( 'read_private_wrp_reviews' );
-        $role->add_cap( 'delete_private_wrp_reviews' ); // Consider not adding this and other private cap to prevent private posts?  Not sure if that works?
+        $role->add_cap( 'delete_private_wrp_reviews' );
         $role->add_cap( 'delete_others_wrp_reviews' );
-        $role->add_cap( 'edit_private_wrp_reviews' ); // Consider not adding this and other private cap to prevent private posts?  Not sure if that works?
+        $role->add_cap( 'edit_private_wrp_reviews' );
       }
     }
   }
 }
 register_activation_hook( __FILE__, 'wrp_add_review_caps' );
-// add_action( 'admin_init', 'wrp_add_review_caps', 999 );
+
+
+// Functions below are used to clean up the appearance of the admin menu for everyone with the 'wrp_reviewer' role.  Everything left
+// untouched for other roles.  Consider moving to theme's function.php, but not sure because it also feels pretty essential to the plugin.
+
+// If user has wrp_reviewer role, only show posts editable by that user in the admin screen.
+function wrp_only_author_posts( $wp_query ) {
+  $user = wp_get_current_user();
+  if( is_admin() && current_user_can( 'wrp_reviewer' ) ) {
+    $wp_query->set( 'author', $user->ID );
+  }
+}
+add_action('pre_get_posts', 'wrp_only_author_posts' );
+
+
+// Remove dashboard widgets for those with wrp_reviewer role
+function wrp_clean_dashboard() {
+  if ( current_user_can( 'wrp_reviewer' ) ) {
+    remove_meta_box( 'dashboard_right_now', 'dashboard', 'normal' );
+    remove_meta_box( 'dashboard_quick_press', 'dashboard', 'side' );
+    remove_meta_box( 'dashboard_primary', 'dashboard', 'side' );
+  }
+}
+add_action( 'wp_dashboard_setup', 'wrp_clean_dashboard' );
+
+
+// Posts that's a wrp_reviewer cannot edit have been removed from their admin menu, but the the post number counts do not reflect
+// this change.  This function sets the display to "none" for css that displays those numbers.  Also, sets display to none for the 'mine'
+// tab, because in this case 'mine' and 'all' refer to same thing.  Only affects wrp_reviewer role.
+function wrp_improve_reviews_tabs() {
+  if ( current_user_can( 'wrp_reviewer' ) ) {
+    $css  = '<style>.subsubsub a .count { display: none; }</style>';
+    $css2 = '<style>.subsubsub .mine { display: none; }</style>';
+    echo $css;
+    echo $css2;
+  }
+}
+add_action( 'admin_head', 'wrp_improve_reviews_tabs' );
 
 ?>

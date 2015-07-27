@@ -1,10 +1,10 @@
 <?php
-// A function for checking the validity of Wikipedia page titles and lastrevids.
-// Returns are array.
 
-// NOTES:
-// ADD A FINAL link to be returned to the user
-// SHOULD PROBABLy just use new_title for all title values returned in array.
+// Function for validating and saving ratings.  Called from within wrp_save_rating.  SHOULD IMPROVE NAMES of both of these.
+// This makes sure that a discipline can only be saved if it already exists (added in admin screen by an admin).
+// Prevents the unlikely possibility of someone using something like curl to add unofficial (possibly malicious) disciplines to save.
+
+// COMMENTED OUT message content is slightly out of date with what actually gets sent to screen.  Update or remove.
 
 function wrp_wiki_test( $test_title, $test_lastrevid ) {
 
@@ -16,7 +16,7 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
     $encode_title = rawurlencode($test_title);
     $title_url = $title_base . $encode_title . $title_ending; // Wikipedia API request
     $title_response = wp_remote_get($title_url); // Raw response from Wikipedia API
-    if( is_array($title_response) ) {  // Verify response is in form we expect
+    if( is_array($title_response) && !is_wp_error($title_response) ) {  // Verify response is in form we expect and not WP Error
       $body = $title_response['body']; // Strip response header
       $title_decoded = json_decode($body, true); // Convert to a PHP useable JSON form
       $pre_info = $title_decoded["query"]["pages"];
@@ -26,7 +26,8 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
       // Make sure that the user supplied title exists.  A $pages_value of -1 means there is no Wikipedia article with that title.
 
       if ($pages_value == -1) {
-        $message = "There is no Wikipedia article with the title that you entered.  Please check the title and try again.";
+        $message = "error1";
+        // "There is no Wikipedia article with the title that you entered.  Please check the title and try again."
         return array( 'error' => true, 'message' => $message );
       }
 
@@ -48,30 +49,35 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
         if ($disambiguation && ($redirect || $normalization)) {
           // Could be a disambiguation page.  Title changed as a result of normalization or redirect.  Save but alert user.
           $new_title = $disambiguation_test['title'];
-          $message = "Title has been changed from '{$test_title}' to '{$new_title}.'  Lastrevid is: {$lastrevid}.  Also, This looks like it might be a disambiguation page.";
+          $message = "success1";
+          // "Title has been changed from '{$test_title}' to '{$new_title}.'  Lastrevid is: {$lastrevid}.  Also, This looks like it might be a disambiguation page."
           return array( 'error' => false, 'lastrevid' => $lastrevid, 'title' => $new_title, 'pageid' => $pageid, 'message' => $message );
         }
         elseif ($redirect || $normalization) {
           // Title changed as a result of normalization or redirect.
           $new_title = $disambiguation_test['title'];
-          $message = "Title has been changed from '{$test_title}' to '{$new_title}.'  Lastrevid is: {$lastrevid}.";
+          $message = "success2";
+          // "Title has been changed from '{$test_title}' to '{$new_title}.'  Lastrevid is: {$lastrevid}."
           return array( 'error' => false, 'lastrevid' => $lastrevid, 'title' => $new_title, 'pageid' => $pageid, 'message' => $message );
         }
         elseif ($disambiguation) {
           // Could be a disambiguation page.  Save but alert user.
-          $message = "This looks like it might be a disambiguation page.  Lastrevid is: {$lastrevid}.";
+          $message = "success3";
+          // "This looks like it might be a disambiguation page.  Lastrevid is: {$lastrevid}."
           return array( 'error' => false, 'lastrevid' => $lastrevid, 'title' => $test_title, 'pageid' => $pageid, 'message' => $message );
           
         }
         else {
           // Everything checks out perfectly.
-          $message = "Lastrevid is: {$lastrevid}.";
+          $message = "success4";
+          // "Lastrevid is: {$lastrevid}."
           return array( 'error' => false, 'lastrevid' => $lastrevid, 'title' => $test_title, 'pageid' => $pageid, 'message' => $message );
         }
       }
     } else {
-      // Unexpected type of response from Wikipedia API.  Prompt user to try again later.
-      $message = "There was an error communicating with Wikipedia.  The text of your review has been saved as a draft.  Please trying submitting again later.";
+      // WP Error or an unexpected type of response from Wikipedia API.  Prompt user to try again later.
+      $message = "error2";
+      // "There was an error communicating with Wikipedia.  The text of your review has been saved as a draft.  Please trying submitting again later."
       return array( 'error' => true, 'message' => $message );
     }
 
@@ -84,7 +90,7 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
     $encode_lastrevid = rawurlencode($test_lastrevid);
     $lastrevid_url = $lastrevid_base . $encode_lastrevid . $lastrevid_ending;
     $lastrevid_response = wp_remote_get($lastrevid_url);
-    if( is_array($lastrevid_response) ) {  // Verify response is in form we expect
+    if( is_array($lastrevid_response) && !is_wp_error($lastrevid_response) ) {  // Verify response is in form we expect and not WP Error
       $body = $lastrevid_response['body']; // Strip response header
       $lastrevid_decoded = json_decode($body, true); // Convert to a PHP useable JSON form
       $query_array = $lastrevid_decoded["query"];
@@ -92,7 +98,8 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
       // Make sure lastrevid is real.  A bad lastrevid has no "pages" key.
 
       if (!array_key_exists("pages", $query_array)) { // Lastrevid doesn't exist
-        $message = "The lastrevid that you entered does not exist.  Please recheck the number and try again.";
+        $message = "error3";
+        // "The lastrevid that you entered does not exist.  Please recheck the number and try again."
         return array( 'error' => true, 'message' => $message );
       }
 
@@ -109,14 +116,16 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
         if (strtolower($test_title) !== strtolower($title)) {
 
           // Title for the lastrevid does not equal title supplied by user
-          $message = "The title associated with the lastrevid does not match the given title";
+          $message = "error4";
+          // "The title associated with the lastrevid does not match the given title"
           return array( 'error' => true, 'message' => $message );
         }
 
         // Lastrevid points to a redirect page.  Redirect page's lastrevids do not change their lastrevid to mirror changes in their target page.
         // So there is no way to know what edit the user intends to being reviewing.
         elseif (array_key_exists("redirect", $info)) {
-          $message = "The lastrevid points to a redirect page and cannot be saved.";
+          $message = "error5";
+          // "The lastrevid points to a redirect page and cannot be saved."
           return array( 'error' => true, 'message' => $message );
         }
 
@@ -129,13 +138,15 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
 
             // Probaly a disambiguation page.  Title capitalization has been changed.  Save, but alert user.
             if (array_key_exists("categories", $info)) {
-              $message = "This looks like it might be a disambiguation page.  Title has been changed to from '{$test_title}' to '{$title}'.";
+              $message = "success5";
+              // "This looks like it might be a disambiguation page.  Title has been changed to from '{$test_title}' to '{$title}'."
               return array( 'error' => false, 'lastrevid' => $test_lastrevid, 'title' => $title, 'pageid' => $pageid, 'message' => $message );
             }
 
             // Titles differ in capitalization, but all else good.  Save, but alert user.
             else {
-              $message = "Title has been changed from '{$test_title}' to '{$title}'.";
+              $message = "success6";
+              // "Title has been changed from '{$test_title}' to '{$title}'."
               return array( 'error' => false, 'lastrevid' => $test_lastrevid, 'title' => $title, 'pageid' => $pageid, 'message' => $message );
             }
           }
@@ -145,61 +156,26 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) {
 
             // Probably a disambiguation page.  Save, but alert user.
             if (array_key_exists("categories", $info)) {
-              $message = "This might be a disambiguation page.";
+              $message = "success7";
+              // "This might be a disambiguation page."
               return array( 'error' => false, 'lastrevid' => $test_lastrevid, 'title' => $test_title, 'pageid' => $pageid, 'message' => $message );
             }
 
             // Everything matches up perfectly.
             else {
-              $message = "Everything's good";
+              $message = "success8";
+              // "Everything's good"
               return array( 'error' => false, 'lastrevid' => $test_lastrevid, 'title' => $test_title, 'pageid' => $pageid, 'message' => $message );
             }
           }
         }
       }
     } else {
-      // Unexpected type of response from Wikipedia API.  Prompt user to try again later.
-      $message = "There was an error communicating with Wikipedia.  The text of your review has been saved as a draft.  Please trying submitting again later.";
+      // WP Error or unexpected type of response from Wikipedia API.  Prompt user to try again later.
+      $message = "error6";
+      // "There was an error communicating with Wikipedia.  The text of your review has been saved as a draft.  Please trying submitting again later."
       return array( 'error' => true, 'message' => $message );
     }
   }
 }
-
-
-// Notes:
-
-// Testing for disambiguation pages:
-// This is imperfect, but the best thing I've found is to search for the Disambiguation pages category
-// and if found, return that info to the user for them to correct.  Adding:
-// "prop=categories&clcategories=Category:%20Disambiguation%20pages" will return a categories key pointing to an
-// array that (among other things) will contain that category name if the page is in the disambiguation category. If not belonging
-// to that category then the category key will not be present.  We should continue with save even if the category exists because the
-// wikipedia disambiguation category is inconsistant.  It's a clue but not proof.  But do report possibility to user.
-
-// There appears to be a redirect mechanism other than the one used by the api.  For example, "charles f. warwick" entered
-// into the api returns no page, but the same thing in wikipedia brings you to the Charles F. Warwick page.  But no redirect page
-// exists in wikipedia.  Not sure how to test for this or what is going on?
-
-// The testing I did for redirect and normalization status is probably unneccesary (when give title only) as we could just grab the
-// title returned by the api no matter what and still get the same result, but I figured we might want that info it at some point,
-// so I have it there.
-
-// I believe that wp_remote_get adds a user agent header for us by default, but check in to this and make sure it works as I want.
-
-// Is it necessary to escape values returned by wiki api?
-
-
-// TO DO
-
-// Clarify variable names and reuse where possible.
-// Simplify structure of code.
-// Make sure error handling is covered in case of a failed response from the wiki api or if it returns something unexpected.  Some
-// is taken care of now, but not all possible situations.
-// Test for existance of array key before using it?
-// if (isset($someArray['someKey'])) {
-//     $myVar = $someArray['someKey'];
-// }
-// Also, this link has good info on shortening above if used a lot:
-// http://stackoverflow.com/questions/9869150/illegal-string-offset-warning-php
-// Consider possibility of circular redirects.
 ?>
