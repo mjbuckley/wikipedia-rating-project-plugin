@@ -76,15 +76,28 @@ MAGIC QUOTES GIST
 From what I have seen, WP expects magic quotes (slashed data) everywhere that isn't the database or in the html (or functions that output to html).  Everywhere else magic quotes are expected.  Obviously double check before assuming this for anything critical, but this looks mostly correct.
 
 
+CHANGE SAVE TO WP_UPDATE_POST NOTES
 
+-Need to check for revisions at some point.
+-Figure out issue with disappearing post_title (see chris-froome-2)
+-Change order of sanitize/remove slashes?
 
+- POST_NAME GENERATION NOTES:
+As it stands now, I beleive it is expected behavior that changing wiki_title or wiki_lastrevid could change to post_name.  Whether or not this happens will depend on whether there have been any reviews of the the same wiki_title after the page being edited.  Additionally, changing post_status from publish backwards and then publishing again could change the post_name.
 
 TO DO
 
+-CURIOUS ABOUT what happens to post_name if there is an update to wiki_title or wiki_lastrevid.  Don't really care if it changes or stays the same (both have their pros/cons), but I want to make sure it doesn't do anything weird.  RELATED: not sure if sending $to_save_title for post_name makes sense or of '' would be better.
+
+- If you click on the preview button for an unsaved review, there is a catchable fatal error (in WP code, not mine, although I suppose it could still trace back to something I've done).  If you keep the same information but save it as a draft and then press preview, everything is good.  PERHAPS THIS GOES BACK TO MY CODE AND HOW I DISPLAY THINGS.  SOMETHING I DISPLAY MUST GIVE AN ERROR IF THE THING ISN'T PRESENT.
+- line length?
+- I believe the profile page opens up when a contributor logs in because there is nothing in the dashboard.  I suspect if something gets add that will fix it.  I bookmark two pages about adding custom post types to the at a glance widget.  Try this?
+- Author archive page shows regular posts as well.  This could be a problem if a site had a blog as well.  Figure out best way to deal with it.
 - Replace get_the_title() in custom message function with use of wiki_title term
+- I need to check if post is a revision and if so exit the save_post hook.  Although I have revisions turned off, if they were turned on I think there is a potential for an infinite loop, plus I don't want to rerun checks on things that have already been checked.  Also, better understand revision process in general.
+- Find other notes in other places in add them, plus organize everything better.
 - Do I need to add nonce to disciplines form?
 - Set wrp plugin as a must use plugin for the theme.
-- Should I change how I'm saving things (the direct db inserts)?  I feel like yes, but not sure.
 - Figure out best practice for spacing/indentation/etc. for opening/closing <?php ?> tags mixed within html.
 - Be consistent with the add action/filters.  Either all before or after function, not a mix.
 - Go through plugin developers guide and make sure I'm not missing anything.
@@ -96,4 +109,17 @@ TO DO
 - Deal with uninstalls/deactivation.
 - Consider changing switch statement to an array in the custom admin notice function.
 - Messages have been updated and generally make sense and work.  However, they are still potentially confusing/missing stuff depending on how I handle the default WP messages that also show up.  Once I figure out what I'm doing with the WP messages then update these accordingly.
-- Ratings should have the same check before save that I use for disciplines (make sure impossible to add something that doesn't already exist).
+- Should I set post_name and/or post_title to '' when rolling back to draft status?
+- I got the default "post update" message removed.  Should I add a view link to my messages?  Also, it would be nice to have a reference to what has heppend (published, sent for review, etc).  ALSO, I FIGURED IT OUT, BUT HAVEN'T ADDED IN ALL NEEDED LOCATIONS.
+- clean up admin messages.  I can have messages with the same text share the same case statement.  Also, I reused on erro message in many places.  Go back and give each location its own error number.
+- Change the my_messages query arg to something less generic.
+- change $loc to $location?
+- I bookmarked a two pages that show how to compress my use of array keys into one nice line. Look at that and apply where needed.
+- I think I can probably use the_title_attribute instead of my long way of getting the title.  Look over this an decide.
+- I mostly have custom messages looking good, but a re-save were only content/disciplines (not title/lastrevid) has changed will bring up the generic post update/submitted/etc messages.  Fix this.  Also, consider making message dismissable.
+- Make sure that files aren't running unnecessarily.  Some things I have might be being checked on every page.
+
+PRIORITY
+
+- Make sure save_post hook and use of wp_update_post (esp with post_name and title generation) is solid.
+- Uninstall/deactivate code

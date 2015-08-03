@@ -10,9 +10,109 @@ still show a post update message.  Figure out how to remove that.
 
 -Get post title and post name fully working an incorporate them (permalink and with easier way to grab title).
 
+OLD BUT GOOD ADMIN MESSAGE DISPLAY CODE (8/2/15)
 
+    <div class="<?php echo $class ?>">
+      <p><?php echo $message ?></p>
+      <?php if ( $class === 'updated' ) { ?>
+        <p><a href="<?php echo $lastrevid_link; ?>">Link to the reviewed Wikipedia page</a></p>
+      <?php } // end if ?>
+    </div>
 
 <?php
+
+if ( wrp_verify_rating( $post_id) ) {
+  // continue
+} else {
+  // roll back to draft
+}
+
+// Check if submitted rating matches one of the official ratings.  Makes sure reviewers cannot add their own rating terms.
+// Returns true if rating matches an official rating, false otherwise.
+function wrp_verify_rating( $post_id ) {
+
+  // Create array ($current_ratings_array) of all current rating terms
+  $current_ratings = get_terms( 'wiki_rating', array( 'hide_empty' => 0 ) );
+  $current_ratings_array = array();
+  foreach($current_ratings as $current_rating) {
+    $current_ratings_array[] = $current_rating->name;
+  }
+
+  $submitted_rating_value = sanitize_text_field( $_POST['wiki_rating'] );
+
+  if ( in_array( $submitted_rating_value, $current_ratings_array )) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+
+$post_status = get_post_status();
+switch ($post_status) {
+  case 'publish':
+    $permalink = get_post_permalink();
+    $intro = sprintf( '<p>Your review has been published.<a href="%s">%s</a></p>', esc_url( $permalink ), '  View the review.' );
+    break;
+
+  case 'pending':
+    $intro = '<p>Your review has been submitted for review.</p>';
+    break;
+
+  case 'draft':
+    $intro = '<p>Your review has been saved as a draft.</p>';
+    break;
+  
+  default:
+    return;
+}
+
+?>
+
+
+    <div class="<?php echo $class ?>">
+      <?php if ( $intro ) { echo $intro; } ?>
+      <p><?php echo $message ?></p>
+      <?php if ( $class === 'updated' ) { ?>
+        <p><a href="<?php echo $lastrevid_link; ?>">Link to the reviewed Wikipedia page</a></p>
+      <?php } // end if ?>
+    </div>
+
+$permalink = esc_url( get_post_permalink() );
+
+check for WP error?
+
+<?php if ( $post_status === 'publish' ) { ?>
+<p><a href="<?php echo esc_url( get_post_permalink() ); ?>">View the review.</a></p>
+<?php } ?>
+<p><a href="<?php echo esc_url( get_post_permalink() ); ?>">View the review.</a></p>
+
+
+<?php if ( $intro ) { ?>
+  <p><?php echo $intro ?></p>
+<?php } // end if ?>
+
+
+<div class="<?php echo $class ?>">
+  <?php if ( $intro ) { echo "<p>{$intro}</p>"; } ?>
+
+  <p><?php echo $message ?></p>
+  <?php if ( $class === 'updated' ) { ?>
+    <p><a href="<?php echo $lastrevid_link; ?>">Link to the reviewed Wikipedia page</a></p>
+  <?php } // end if ?>
+</div>
+
+<?php
+
+
+
+
+  $permalink = get_permalink( $post->ID );
+  $view_link = sprintf( ' <a href="%s">%s</a>', esc_url( $permalink ), __( 'View book', 'your-plugin-textdomain' ) );
+  $messages[ $post_type ][1] .= $view_link;
+
+
+
 
 
 
