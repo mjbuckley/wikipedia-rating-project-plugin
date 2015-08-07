@@ -18,6 +18,86 @@ GPLv2 info goes here.
 require_once( plugin_dir_path( __FILE__ ) . 'includes/wrp_wiki_test.php' );
 
 
+// activate/deactivation actions below.  No unintstall function because all necessary removal has already
+// happened in dactivation.  I'm intentionally keeping review data in the database becuase I suspect that is what most
+// user would expect to happen.
+
+function wrp_plugin_install() {
+ 
+  if ( ! current_user_can( 'activate_plugins' ) ) {
+    return;
+  }
+
+  $plugin = isset( $_REQUEST['plugin'] ) ? $_REQUEST['plugin'] : '';
+  check_admin_referer( "activate-plugin_{$plugin}" );
+
+  wrp_create_review_post_type();
+  wrp_create_taxonomies();
+  flush_rewrite_rules();
+}
+register_activation_hook( __FILE__, 'wrp_plugin_install' );
+
+
+function wrp_plugin_deactivation() {
+
+  if ( ! current_user_can( 'activate_plugins' ) ) {
+    return;
+  }
+
+  $plugin = isset( $_REQUEST['plugin'] ) ? $_REQUEST['plugin'] : '';
+  check_admin_referer( "deactivate-plugin_{$plugin}" );
+
+  wrp_remove_review_caps();
+  flush_rewrite_rules();
+}
+register_deactivation_hook( __FILE__, 'wrp_plugin_deactivation' );
+
+// Removes the wrp_reviewer role and all wrp_review relatatd caps from all others.
+function wrp_remove_review_caps() {
+
+  remove_role( 'wrp_reviewer' );
+
+  // Array of default WordPress roles as well as the custom wrp_reviewer role.
+  $roles = array( 'administrator', 'editor', 'author', 'contributor', 'subscriber' );
+
+  // Loop through each role and add capabilities
+  foreach ( $roles as $the_role ) {
+
+    $role = get_role( $the_role );
+
+    if ( ! is_null( $role ) ) { // Checks in cases one of the default roles has been removed
+
+      // All roles
+      $role->remove_cap( 'read_wrp_reviews' );
+
+      // All roles above subscriber
+      if ( $the_role == 'administrator' || $the_role == 'editor' || $the_role == 'author' || $the_role == 'contributor' ) {
+        $role->remove_cap( 'edit_wrp_reviews' );
+        $role->remove_cap( 'delete_wrp_reviews' );
+        $role->remove_cap( 'delete_published_wrp_reviews' );
+        $role->remove_cap( 'edit_published_wrp_reviews' );
+        $role->remove_cap( 'create_wrp_reviews' );
+      }
+
+      // All roles above contributor
+      if ( $the_role == 'administrator' || $the_role == 'editor' || $the_role == 'author' ) {
+        $role->remove_cap( 'publish_wrp_reviews' );
+      }
+
+      // All roles above author
+      if ( $the_role == 'administrator' || $the_role == 'editor' ) {
+        $role->remove_cap( 'edit_others_wrp_reviews' );
+        $role->remove_cap( 'read_private_wrp_reviews' );
+        $role->remove_cap( 'delete_private_wrp_reviews' );
+        $role->remove_cap( 'delete_others_wrp_reviews' );
+        $role->remove_cap( 'edit_private_wrp_reviews' );
+      }
+    }
+  }
+}
+
+
+
 // Register custom post type for reviews
 function wrp_create_review_post_type() {
   $labels = array( 
@@ -395,7 +475,7 @@ function wrp_custom_notices() {
         $class = 'updated';
         break;
       default:
-        $message = '' // In case something unexpected somehow got through
+        $message = ''; // In case something unexpected somehow got through
         break;
     } // End switch     
     ?>
@@ -404,7 +484,7 @@ function wrp_custom_notices() {
     <!-- Display code for custom error message -->
 
     <div class="<?php echo $class ?>">
-      <?php if ( $intro ) { echo $intro; } ?>
+      <?php if ( isset( $intro ) && $intro ) { echo $intro; } ?>
       <p><?php echo $message ?></p>
       <?php if ( $class === 'updated' ) { ?>
         <p><a href="<?php echo $lastrevid_link; ?>">Link to the reviewed Wikipedia page</a></p>
@@ -481,6 +561,11 @@ function wrp_verify_rating( $post_id ) {
 // -Saves meta data if information is good.
 // -Does not save meta data if information is bad.  Rolls back post_status to draft (but keeps the text content of the review).
 // -Sets wiki_title as post_title and also genrates a unique post_name slug based on post_title.
+// -NOTE: post_name always set to '' in wp_update_post because that function ends up calling wp_insert_post, which creates a unique
+// slug from the post_title of post_name is blank.  Calling wp_unique_slug from wrp_save_rating was giving some weird results, so I'm
+// just letting WP handle it.  Setting post_name to '' might cause a review's post_name to change if wiki_title or wiki_lastrevid is changed,
+// but that is actually a beneficial result because the review is no longer for the exact same page/edit, thus a new post_name makes sense.
+// Setting to '' may not really be needed in all cases, and there isn't any harm.
 
 add_action( 'save_post','wrp_save_rating' );
 
@@ -509,12 +594,13 @@ function wrp_save_rating( $post_id ) {
 
     // Required fields are missing so roll back post to draft status
     remove_action( 'save_post', 'wrp_save_rating' );
-    wp_update_post( array( 'ID' => $post_id, 'post_status' => 'draft' ) );
+    wp_update_post( array( 'ID' => $post_id, 'post_status' => 'draft', 'post_name' => '', ) );
     add_action( 'save_post', 'wrp_save_rating' );
 
-    // Pass error message to user:
+    // Pass error message to user and remove default WP message
     $message = 'error7';
     add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'my_message', $message, $loc ); } );
+    add_filter( 'redirect_post_location', function($loc) { return remove_query_arg( 'message', $loc ); } );
     
 
 
@@ -526,12 +612,13 @@ function wrp_save_rating( $post_id ) {
 
       // Rating term is bogus.  Roll back post to draft status.
       remove_action( 'save_post', 'wrp_save_rating' );
-      wp_update_post( array( 'ID' => $post_id, 'post_status' => 'draft' ) );
+      wp_update_post( array( 'ID' => $post_id, 'post_status' => 'draft', 'post_name' => '', ) );
       add_action( 'save_post', 'wrp_save_rating' );
 
-      // Pass error message to user:
+      // Pass error message to user and remove default WP message
       $message = 'error8';
       add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'my_message', $message, $loc ); } );
+      add_filter( 'redirect_post_location', function($loc) { return remove_query_arg( 'message', $loc ); } );
 
 
     // Rating term legit, so continue validation process
@@ -575,12 +662,13 @@ function wrp_save_rating( $post_id ) {
           
           // The user submitted bogus info, or there was an error communicating with Wikipedia.  Roll post back to draft status.
           remove_action( 'save_post', 'wrp_save_rating' );
-          wp_update_post( array( 'ID' => $post_id, 'post_status' => 'draft' ) );
+          wp_update_post( array( 'ID' => $post_id, 'post_status' => 'draft', 'post_name' => '', ) );
           add_action( 'save_post', 'wrp_save_rating' );
           
-          // Alert user of the specific error.
+          // Alert user of the specific error and remove default WP message
           $message = $wiki_info['message'];
           add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'my_message', $message, $loc ); } );
+          add_filter( 'redirect_post_location', function($loc) { return remove_query_arg( 'message', $loc ); } );
 
 
         // At this point, everything is basically good.  There may be some minor issues to pass on to user, but initiate save process.
@@ -617,7 +705,7 @@ function wrp_save_rating( $post_id ) {
 
 
           remove_action( 'save_post', 'wrp_save_rating' );
-          wp_update_post( array( 'ID' => $post_id, 'post_title' => $to_save_title, 'post_name' => $to_save_title, ) );
+          wp_update_post( array( 'ID' => $post_id, 'post_title' => $to_save_title, 'post_name' => '', ) );
           add_action( 'save_post', 'wrp_save_rating' );
 
           // Pass along message to user and remove default WP message (it is added before the save_post hook and often doesn't

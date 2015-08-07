@@ -580,5 +580,48 @@ add_action( 'wp_dashboard_setup', 'wrp_clean_dashboard' );
 
 
 
+// Removes the wrp_reviewer role and all wrp_review relatatd caps from all others.
+function wrp_remove_review_caps() {
+
+  remove_role( 'wrp_reviewer' );
+
+  // Array of default WordPress roles as well as the custom wrp_reviewer role.
+  $roles = array( 'administrator', 'editor', 'author', 'contributor', 'subscriber' );
+
+  // Loop through each role and add capabilities
+  foreach ( $roles as $the_role ) {
+
+    $role = get_role( $the_role );
+
+    if ( ! is_null( $role ) ) { // Checks in cases one of the default roles has been removed
+
+      // All roles
+      $role->remove_cap( 'read_wrp_reviews' );
+
+      // All roles above subscriber
+      if ( $the_role == 'administrator' || $the_role == 'editor' || $the_role == 'author' || $the_role == 'contributor' ) {
+        $role->remove_cap( 'edit_wrp_reviews' );
+        $role->remove_cap( 'delete_wrp_reviews' );
+        $role->remove_cap( 'delete_published_wrp_reviews' );
+        $role->remove_cap( 'edit_published_wrp_reviews' );
+        $role->remove_cap( 'create_wrp_reviews' );
+      }
+
+      // All roles above contributor
+      if ( $the_role == 'administrator' || $the_role == 'editor' || $the_role == 'author' ) {
+        $role->remove_cap( 'publish_wrp_reviews' );
+      }
+
+      // All roles above author
+      if ( $the_role == 'administrator' || $the_role == 'editor' ) {
+        $role->remove_cap( 'edit_others_wrp_reviews' );
+        $role->remove_cap( 'read_private_wrp_reviews' );
+        $role->remove_cap( 'delete_private_wrp_reviews' );
+        $role->remove_cap( 'delete_others_wrp_reviews' );
+        $role->remove_cap( 'edit_private_wrp_reviews' );
+      }
+    }
+  }
+}
 
 
