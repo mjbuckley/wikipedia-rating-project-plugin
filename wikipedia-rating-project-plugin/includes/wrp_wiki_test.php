@@ -11,12 +11,9 @@
 // -Get pageid number.
 // -Return an array with this infomation, or notice of an error, as well as a message key for displaying results to the user.
 
-// NOTE: This function is called from wrp_save_rating(), which has already removed the magic quote escaping added by WordPress.
-// If used elsewhere, be sure that $test_title has magic quote escaping removed or else Wikipedia api could get bad data.
-
 // NOTE ADDITIONAL ERRORS ADDED.  GIVE THEM A NEW MESSAGE #
 
-function wrp_wiki_test( $test_title, $test_lastrevid ) {
+function wrp_wiki_test( $test_title, $test_lastrevid ) { // Expects unslashed data (no magic quotes)
 
   if ( empty( $test_lastrevid ) ) { // START OF TEST IF LASTREVID EMPTY
 

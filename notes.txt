@@ -130,7 +130,8 @@ TO DO
 -Reactivating was causing me lots of problems.  Lots of links were broken and pages incomplete even though I was adding the custom post type and then flushing rewrite rules according to codex specs.  A brief mention in a blog post said to also register custom taxonomies in the activation hook, and once I did that everything worked perfectly, but keep in mind in the future because its hard to figure out.
 -When I activate a plugin after deactivating it, the users with the reviewer role get their reviewer role back.  This is nice, but not sure why its happening.  I remove the role on deactivation, but I guess I don't remove that name in the db next to the user?  Probably that.  Decide if this is ok.  Should probably have a full removal in an uninstall option at some point.
 -Author page only lists up to 10 reviews.  Same with many other pages.
-
+-Need to use defined( 'ABSPATH' ) OR exit; ???
+-Not sure why reviwers opens to profile and everyone else opens to dashboard?
 
 PRIORITY
 

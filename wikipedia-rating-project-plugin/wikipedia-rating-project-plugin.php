@@ -52,51 +52,6 @@ function wrp_plugin_deactivation() {
 }
 register_deactivation_hook( __FILE__, 'wrp_plugin_deactivation' );
 
-// Removes the wrp_reviewer role and all wrp_review relatatd caps from all others.
-function wrp_remove_review_caps() {
-
-  remove_role( 'wrp_reviewer' );
-
-  // Array of default WordPress roles as well as the custom wrp_reviewer role.
-  $roles = array( 'administrator', 'editor', 'author', 'contributor', 'subscriber' );
-
-  // Loop through each role and add capabilities
-  foreach ( $roles as $the_role ) {
-
-    $role = get_role( $the_role );
-
-    if ( ! is_null( $role ) ) { // Checks in cases one of the default roles has been removed
-
-      // All roles
-      $role->remove_cap( 'read_wrp_reviews' );
-
-      // All roles above subscriber
-      if ( $the_role == 'administrator' || $the_role == 'editor' || $the_role == 'author' || $the_role == 'contributor' ) {
-        $role->remove_cap( 'edit_wrp_reviews' );
-        $role->remove_cap( 'delete_wrp_reviews' );
-        $role->remove_cap( 'delete_published_wrp_reviews' );
-        $role->remove_cap( 'edit_published_wrp_reviews' );
-        $role->remove_cap( 'create_wrp_reviews' );
-      }
-
-      // All roles above contributor
-      if ( $the_role == 'administrator' || $the_role == 'editor' || $the_role == 'author' ) {
-        $role->remove_cap( 'publish_wrp_reviews' );
-      }
-
-      // All roles above author
-      if ( $the_role == 'administrator' || $the_role == 'editor' ) {
-        $role->remove_cap( 'edit_others_wrp_reviews' );
-        $role->remove_cap( 'read_private_wrp_reviews' );
-        $role->remove_cap( 'delete_private_wrp_reviews' );
-        $role->remove_cap( 'delete_others_wrp_reviews' );
-        $role->remove_cap( 'edit_private_wrp_reviews' );
-      }
-    }
-  }
-}
-
-
 
 // Register custom post type for reviews
 function wrp_create_review_post_type() {
@@ -792,6 +747,51 @@ function wrp_add_review_caps() {
 register_activation_hook( __FILE__, 'wrp_add_review_caps' );
 
 
+// Removes the wrp_reviewer role and all wrp_review relatatd caps from all others.
+function wrp_remove_review_caps() {
+
+  remove_role( 'wrp_reviewer' );
+
+  // Array of default WordPress roles as well as the custom wrp_reviewer role.
+  $roles = array( 'administrator', 'editor', 'author', 'contributor', 'subscriber' );
+
+  // Loop through each role and add capabilities
+  foreach ( $roles as $the_role ) {
+
+    $role = get_role( $the_role );
+
+    if ( ! is_null( $role ) ) { // Checks in cases one of the default roles has been removed
+
+      // All roles
+      $role->remove_cap( 'read_wrp_reviews' );
+
+      // All roles above subscriber
+      if ( $the_role == 'administrator' || $the_role == 'editor' || $the_role == 'author' || $the_role == 'contributor' ) {
+        $role->remove_cap( 'edit_wrp_reviews' );
+        $role->remove_cap( 'delete_wrp_reviews' );
+        $role->remove_cap( 'delete_published_wrp_reviews' );
+        $role->remove_cap( 'edit_published_wrp_reviews' );
+        $role->remove_cap( 'create_wrp_reviews' );
+      }
+
+      // All roles above contributor
+      if ( $the_role == 'administrator' || $the_role == 'editor' || $the_role == 'author' ) {
+        $role->remove_cap( 'publish_wrp_reviews' );
+      }
+
+      // All roles above author
+      if ( $the_role == 'administrator' || $the_role == 'editor' ) {
+        $role->remove_cap( 'edit_others_wrp_reviews' );
+        $role->remove_cap( 'read_private_wrp_reviews' );
+        $role->remove_cap( 'delete_private_wrp_reviews' );
+        $role->remove_cap( 'delete_others_wrp_reviews' );
+        $role->remove_cap( 'edit_private_wrp_reviews' );
+      }
+    }
+  }
+}
+
+
 // Functions below are used to clean up the appearance of the admin menu for everyone with the 'wrp_reviewer' role.  Everything left
 // untouched for other roles.  Admitedly these functions blur the line between function and content and could go in a theme's functions.php,
 // but I think they make most sense here since the purpose of the plugin is to provide an incredibly simple experience for reviewers.
@@ -826,8 +826,31 @@ function wrp_clean_dashboard() {
     remove_meta_box( 'dashboard_right_now', 'dashboard', 'normal' );
     remove_meta_box( 'dashboard_quick_press', 'dashboard', 'side' );
     remove_meta_box( 'dashboard_primary', 'dashboard', 'side' );
+    remove_meta_box( 'dashboard_activity', 'dashboard', 'normal');
   }
 }
 add_action( 'wp_dashboard_setup', 'wrp_clean_dashboard' );
+
+
+// Test code for adding a dashboard widget
+
+add_action( 'wp_dashboard_setup', 'wrp_add_dashboard_widget' );
+function wrp_add_dashboard_widget() {
+    wp_add_dashboard_widget(
+        'wrp_dashboard_widget', 
+        'Test Heading Title', 
+        'wrp_dashboard_widget'
+    );
+}
+
+function wrp_dashboard_widget() { ?>
+
+  <div>
+    <h2>Temporary Heading</h2>
+    <p>Please click on the "Reviews" button to see your current reviews or to add a new one.</p>
+    <p>We will be adding additional information in this location in the future</p>
+  </div>
+
+<?php }
 
 ?>

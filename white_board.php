@@ -21,6 +21,47 @@ OLD BUT GOOD ADMIN MESSAGE DISPLAY CODE (8/2/15)
 
 <?php
 
+
+
+add_action( 'wp_dashboard_setup', 'wrp_add_dashboard_widget' );
+function wrp_add_dashboard_widget() {
+    wp_add_dashboard_widget(
+        'wrp_dashboard_widget', 
+        'Test Heading Title', 
+        'wrp_dashboard_widget',
+    );
+}
+
+function wrp_dashboard_widget() { ?>
+
+  <div>
+    <h2>Test internal title</h2>
+    <p>More information to get here soon!</p?
+  </div>
+
+<?php }
+
+
+function dashboardWidgetContent() {
+    $user = wp_get_current_user();
+    echo "Hello <strong>" . $user->user_login . "</strong>, this is your custom widget. You can, for instance, list all the posts you've published:";
+ 
+    $r = new WP_Query( apply_filters( 'widget_posts_args', array(
+        'posts_per_page' => 10,
+        'post_status' => 'publish',
+        'author' => $user->ID
+    ) ) );
+ 
+    if ( $r->have_posts() ) :
+    ?>
+ 
+    <?php
+    endif;
+}
+
+
+
+
 if ( wrp_verify_rating( $post_id) ) {
   // continue
 } else {
