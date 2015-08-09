@@ -1,5 +1,16 @@
 TO DO:
 
+
+errors:
+
+-1: no Wikipedia article with the given title.
+-2, 6, 7, 8: Response is a WP Error or in an unexpected form (not array or contains unexpected or missing keys).  Some could be caused
+    by code errors, some by probalems with wikipedia, or communication erros.
+-3: bad lastrevid
+-4: Title for the lastrevid does not equal title supplied by user
+-5: Lastrevid points to a redirect page
+
+
 -Add link to reviewed Wikipedia page in admin notice (code to incorporate below.
 <a href="<?php echo $lastrevid_link; ?>"><?php echo $lastrevid; ?></a>
 

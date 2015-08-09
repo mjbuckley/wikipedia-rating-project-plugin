@@ -89,16 +89,12 @@ TO DO
 
 -CURIOUS ABOUT what happens to post_name if there is an update to wiki_title or wiki_lastrevid.  Don't really care if it changes or stays the same (both have their pros/cons), but I want to make sure it doesn't do anything weird.  RELATED: not sure if sending $to_save_title for post_name makes sense or of '' would be better.
 
-- If you click on the preview button for an unsaved review, there is a catchable fatal error (in WP code, not mine, although I suppose it could still trace back to something I've done).  If you keep the same information but save it as a draft and then press preview, everything is good.  PERHAPS THIS GOES BACK TO MY CODE AND HOW I DISPLAY THINGS.  SOMETHING I DISPLAY MUST GIVE AN ERROR IF THE THING ISN'T PRESENT.
-- line length?
-- I believe the profile page opens up when a contributor logs in because there is nothing in the dashboard.  I suspect if something gets add that will fix it.  I bookmark two pages about adding custom post types to the at a glance widget.  Try this?
 - Author archive page shows regular posts as well.  This could be a problem if a site had a blog as well.  Figure out best way to deal with it.
 - Replace get_the_title() in custom message function with use of wiki_title term
 - I need to check if post is a revision and if so exit the save_post hook.  Although I have revisions turned off, if they were turned on I think there is a potential for an infinite loop, plus I don't want to rerun checks on things that have already been checked.  Also, better understand revision process in general.
 - Find other notes in other places in add them, plus organize everything better.
 - Do I need to add nonce to disciplines form?
 - Set wrp plugin as a must use plugin for the theme.
-- Figure out best practice for spacing/indentation/etc. for opening/closing <?php ?> tags mixed within html.
 - Be consistent with the add action/filters.  Either all before or after function, not a mix.
 - Go through plugin developers guide and make sure I'm not missing anything.
 - Make sure I'm following WordPress php standards.
@@ -122,21 +118,17 @@ TO DO
 -PUT IN NOTES: A unique url based the reviewed wikipedia page title is created when a review is published.  Reverting a review to draft/pending and later republishing or changing the wiki_title or wiki_lastrevid may result in a url change.
 -PUT IN NOTES: Every review has a unique post_name, but is not 100% fixed (for that use GUID or post_id).
 -Not exactly wrong, but worth noting: If a title has been successfully published and then the user tries to change title or lastrevid to something else (that is wrong), the review gets reverted to a draft, but the old but correct title/lastrevid fields remain saved and are returned in the form.
--Flush cache on install/uninstall to make sure custom post types urls are recognized/forgoten.
--Figure out anout removing roles.
--Flush rewrite rules in theme's functions.php on activation.
+-Figure out about removing roles.
 -Add plugin and db version numbers.  This will be very helpful for updates.  There is a really good description of this at: http://solislab.com/blog/plugin-activation-checklist/
 -Deactivation generally works as expected.  For reviewer role, they can still log in, but they can't add anything of any type.  However, there dashboard looks different (because I removed stuff based on reviewer role, which no longer exists).  The curiosity is that if I request something like wrp/reviews/Tom-Hanks or even just wrp/reviews/ksdjfhjds returns the home page, but wrp/kljdsfdskj gives a this doesn't exist page.??
 -Reactivating was causing me lots of problems.  Lots of links were broken and pages incomplete even though I was adding the custom post type and then flushing rewrite rules according to codex specs.  A brief mention in a blog post said to also register custom taxonomies in the activation hook, and once I did that everything worked perfectly, but keep in mind in the future because its hard to figure out.
 -When I activate a plugin after deactivating it, the users with the reviewer role get their reviewer role back.  This is nice, but not sure why its happening.  I remove the role on deactivation, but I guess I don't remove that name in the db next to the user?  Probably that.  Decide if this is ok.  Should probably have a full removal in an uninstall option at some point.
 -Author page only lists up to 10 reviews.  Same with many other pages.
 -Need to use defined( 'ABSPATH' ) OR exit; ???
--Not sure why reviwers opens to profile and everyone else opens to dashboard?
 
 PRIORITY
 
 - Make sure save_post hook and use of wp_update_post (esp with post_name and title generation) is solid.
-- Uninstall/deactivate code
 
 
 

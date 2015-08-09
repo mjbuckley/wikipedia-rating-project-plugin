@@ -79,7 +79,7 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) { // Expects unslashed da
             // A final check to be certain of no errors.  A failure here would likely be because an array key we expected to be there was not
             // present, and all subsequent variables depending on it (including $lastrevid) would be set to null.  In any case, we
             // have an unexpected response from Wikipedia.
-            $message = 'error6';
+            $message = 'error8';
             return array( 'error' => true, 'message' => $message );
 
 
@@ -126,7 +126,7 @@ function wrp_wiki_test( $test_title, $test_lastrevid ) { // Expects unslashed da
     if ( is_wp_error( $lastrevid_response ) || ! is_array( $lastrevid_response ) ) {
 
       // Response is a WP Error or in an unexpected form.  Prompt user to try again later.
-      $message = 'error6';
+      $message = 'error7';
       return array( 'error' => true, 'message' => $message );
 
 

@@ -5,23 +5,32 @@ Plugin URI:
 Description: A plugin to rate Wikipedia pages in WordPress.
 Version: 0.1
 Author: Michael Buckley
-Author URI:
-License: GPLv2
+Author URI: https://github.com/mjbuckley
+License: GPL2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 */
 
 /*
-GPLv2 info goes here.
+Wikipedia Rating Project Plugin is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 2 of the License, or
+any later version.
+ 
+Wikipedia Rating Project Plugin is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+ 
+You should have received a copy of the GNU General Public License
+along with Wikipedia Rating Project Plugin. If not, see {License URI}.
 */
 
 
 require_once( plugin_dir_path( __FILE__ ) . 'includes/wrp_wiki_test.php' );
 
 
-// activate/deactivation actions below.  No unintstall function because all necessary removal has already
-// happened in dactivation.  I'm intentionally keeping review data in the database becuase I suspect that is what most
-// user would expect to happen.
-
+// Create wrp_review post type and custom taxonomies when plugin activated so that flushing rewrite rules will take in to account
+// their existence.  Will still be included in an init hook later.
 function wrp_plugin_install() {
  
   if ( ! current_user_can( 'activate_plugins' ) ) {
@@ -38,6 +47,7 @@ function wrp_plugin_install() {
 register_activation_hook( __FILE__, 'wrp_plugin_install' );
 
 
+// Remove capabilities and roles and flush rewrite rules on deactivation.
 function wrp_plugin_deactivation() {
 
   if ( ! current_user_can( 'activate_plugins' ) ) {
@@ -51,6 +61,10 @@ function wrp_plugin_deactivation() {
   flush_rewrite_rules();
 }
 register_deactivation_hook( __FILE__, 'wrp_plugin_deactivation' );
+
+
+// Uninstall note: No uninstall function because most users likely expect their data to remain if the plugin is deleted.  Perhaps
+// included a commented out uninstall section in the future that could be uncommented to remove data?
 
 
 // Register custom post type for reviews
@@ -362,14 +376,17 @@ function wrp_custom_notices() {
       }
     }
 
-    // Determine custom error/success message
-    // Some cases have the same message, but they are brought about by different situations.  Kept seperate for debugging purposes.
+    // Determine custom error/success message to display. Some error/success message numbers have the same message, but they are brought
+    // about by different situations.  The numbers are kept seperate for debugging purposes.  Probably convert to an array in the future.
     switch ( $message_value ) {
       case 'error1':
         $message = 'There is no Wikipedia article with the title that you entered.  Please double check the spelling and capitalization and try again.';
         $class = 'error';
         break;
       case 'error2':
+      case 'error6':
+      case 'error7':
+      case 'error8':
         $message = 'There was an error communicating with Wikipedia.  Please trying submitting again later.';
         $class = 'error';
         break;
@@ -385,46 +402,30 @@ function wrp_custom_notices() {
         $message = 'The lastrevid that you entered points to a redirect page and cannot be saved.';
         $class = 'error';
         break;
-      case 'error6':
-        $message = 'There was an error communicating with Wikipedia.  Please trying submitting again later.';
-        $class = 'error';
-        break;
-      case 'error7':
+      case 'error9':
         $message = 'The Wikipedia article title and/or the rating is not filled out.  Please be sure both fields are complete and try again.';
         $class = 'error';
         break;
-      case 'error8':
+      case 'error10':
         $message = 'The rating you submited is invalid.  Please select from one of the official ratings.';
         $class = 'error';
         break;
       case 'success1':
-        $message = "The title has been changed to '{$title}.'  The lastrevid is: {$lastrevid}.  Also, this looks like it might be a disambiguation page.  Please click on the link to the reviewed Wikipedia page and verify that this is the page that you intended to review.";
-        $class = 'updated';
-        break;
-      case 'success2':
-        $message = "The title has been changed to '{$title}.'  The lastrevid is: {$lastrevid}.";
-        $class = 'updated';
-        break;
-      case 'success3':
-        $message = "The title has been saved as '{$title}.'  The lastrevid is: {$lastrevid}.  Also, this looks like it might be a disambiguation page.  Please click on the link to the reviewed Wikipedia page and verify that this is the page that you intended to review.";
-        $class = 'updated';
-        break;
-      case 'success4':
-        $message = "The title has been saved as '{$title}.'  The lastrevid is: {$lastrevid}.";
-        $class = 'updated';
-        break;
       case 'success5':
         $message = "The title has been changed to '{$title}.'  The lastrevid is: {$lastrevid}.  Also, this looks like it might be a disambiguation page.  Please click on the link to the reviewed Wikipedia page and verify that this is the page that you intended to review.";
         $class = 'updated';
         break;
+      case 'success2':
       case 'success6':
         $message = "The title has been changed to '{$title}.'  The lastrevid is: {$lastrevid}.";
         $class = 'updated';
         break;
+      case 'success3':
       case 'success7':
         $message = "The title has been saved as '{$title}.'  The lastrevid is: {$lastrevid}.  Also, this looks like it might be a disambiguation page.  Please click on the link to the reviewed Wikipedia page and verify that this is the page that you intended to review.";
         $class = 'updated';
         break;
+      case 'success4':
       case 'success8':
         $message = "The title has been saved as '{$title}.'  The lastrevid is: {$lastrevid}.";
         $class = 'updated';
@@ -553,7 +554,7 @@ function wrp_save_rating( $post_id ) {
     add_action( 'save_post', 'wrp_save_rating' );
 
     // Pass error message to user and remove default WP message
-    $message = 'error7';
+    $message = 'error9';
     add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'my_message', $message, $loc ); } );
     add_filter( 'redirect_post_location', function($loc) { return remove_query_arg( 'message', $loc ); } );
     
@@ -571,7 +572,7 @@ function wrp_save_rating( $post_id ) {
       add_action( 'save_post', 'wrp_save_rating' );
 
       // Pass error message to user and remove default WP message
-      $message = 'error8';
+      $message = 'error10';
       add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'my_message', $message, $loc ); } );
       add_filter( 'redirect_post_location', function($loc) { return remove_query_arg( 'message', $loc ); } );
 
