@@ -85,55 +85,6 @@ CHANGE SAVE TO WP_UPDATE_POST NOTES
 - POST_NAME GENERATION NOTES:
 As it stands now, I beleive it is expected behavior that changing wiki_title or wiki_lastrevid could change to post_name.  Whether or not this happens will depend on whether there have been any reviews of the the same wiki_title after the page being edited.  Additionally, changing post_status from publish backwards and then publishing again could change the post_name.
 
-TO DO
 
--CURIOUS ABOUT what happens to post_name if there is an update to wiki_title or wiki_lastrevid.  Don't really care if it changes or stays the same (both have their pros/cons), but I want to make sure it doesn't do anything weird.  RELATED: not sure if sending $to_save_title for post_name makes sense or of '' would be better.
-
-- Author archive page shows regular posts as well.  This could be a problem if a site had a blog as well.  Figure out best way to deal with it.
-- Replace get_the_title() in custom message function with use of wiki_title term
-- I need to check if post is a revision and if so exit the save_post hook.  Although I have revisions turned off, if they were turned on I think there is a potential for an infinite loop, plus I don't want to rerun checks on things that have already been checked.  Also, better understand revision process in general.
-- Find other notes in other places in add them, plus organize everything better.
-- Do I need to add nonce to disciplines form?
-- Set wrp plugin as a must use plugin for the theme.
-- Be consistent with the add action/filters.  Either all before or after function, not a mix.
-- Go through plugin developers guide and make sure I'm not missing anything.
-- Make sure I'm following WordPress php standards.
-- Complete comment/gpl section: be sure to include site/author urls.
-- I think (not sure) there are two issues with inserting rating terms in init hook.  Not huge issue, but deal with eventually:
-  * Admins can never delete them if they want to, because they are always added back in.
-  * wp_insert term runs every time, even though it really only need to be done once.
-- Deal with uninstalls/deactivation.
-- Consider changing switch statement to an array in the custom admin notice function.
-- Messages have been updated and generally make sense and work.  However, they are still potentially confusing/missing stuff depending on how I handle the default WP messages that also show up.  Once I figure out what I'm doing with the WP messages then update these accordingly.
-- Should I set post_name and/or post_title to '' when rolling back to draft status?
-- I got the default "post update" message removed.  Should I add a view link to my messages?  Also, it would be nice to have a reference to what has heppend (published, sent for review, etc).  ALSO, I FIGURED IT OUT, BUT HAVEN'T ADDED IN ALL NEEDED LOCATIONS.
-- clean up admin messages.  I can have messages with the same text share the same case statement.  Also, I reused on erro message in many places.  Go back and give each location its own error number.
-- Change the my_messages query arg to something less generic.
-- change $loc to $location?
-- I bookmarked a two pages that show how to compress my use of array keys into one nice line. Look at that and apply where needed.
-- I think I can probably use the_title_attribute instead of my long way of getting the title.  Look over this an decide.
-- I mostly have custom messages looking good, but a re-save were only content/disciplines (not title/lastrevid) has changed will bring up the generic post update/submitted/etc messages.  Fix this.  Also, consider making message dismissable.
-- Make sure that files aren't running unnecessarily.  Some things I have might be being checked on every page.
-- The way things are setup, all reviews will have a unique post_name.  However, it cannot be assumed to an earlier post_name # means an older review.  If a post_name number is no longer in use, that number gets freed up to be used again.  Ex: There are 10 Albert Einstein reviews.  Reviewer for Albert-Einstein-5 decides to delete their review.  Now, a new person creates a review. That review will be assigned Albert-Einstein-5.  If a review ever gets reverted to a draft, the same thing happens.  Reverting to draft removes the post_name, thus freeing it up the old post_name.  The problem is one of unique permalinks.  If postname is being relied upon for a permalink, this could in rare cases lead to confusion.  Using something like %post_name%post_id% is a potential solution.  ex: http://www.medievalwikipedia.org/Albert-Einstein-3/467.  I'm fairly certain that post_ids don't get reused, and even if they do the chance that both a post_name and post_id would ever get reassigned to the same post has to be pretty remote.
--PUT IN NOTES: A unique url based the reviewed wikipedia page title is created when a review is published.  Reverting a review to draft/pending and later republishing or changing the wiki_title or wiki_lastrevid may result in a url change.
--PUT IN NOTES: Every review has a unique post_name, but is not 100% fixed (for that use GUID or post_id).
--Not exactly wrong, but worth noting: If a title has been successfully published and then the user tries to change title or lastrevid to something else (that is wrong), the review gets reverted to a draft, but the old but correct title/lastrevid fields remain saved and are returned in the form.
--Figure out about removing roles.
--Add plugin and db version numbers.  This will be very helpful for updates.  There is a really good description of this at: http://solislab.com/blog/plugin-activation-checklist/
--Deactivation generally works as expected.  For reviewer role, they can still log in, but they can't add anything of any type.  However, there dashboard looks different (because I removed stuff based on reviewer role, which no longer exists).  The curiosity is that if I request something like wrp/reviews/Tom-Hanks or even just wrp/reviews/ksdjfhjds returns the home page, but wrp/kljdsfdskj gives a this doesn't exist page.??
--Reactivating was causing me lots of problems.  Lots of links were broken and pages incomplete even though I was adding the custom post type and then flushing rewrite rules according to codex specs.  A brief mention in a blog post said to also register custom taxonomies in the activation hook, and once I did that everything worked perfectly, but keep in mind in the future because its hard to figure out.
--When I activate a plugin after deactivating it, the users with the reviewer role get their reviewer role back.  This is nice, but not sure why its happening.  I remove the role on deactivation, but I guess I don't remove that name in the db next to the user?  Probably that.  Decide if this is ok.  Should probably have a full removal in an uninstall option at some point.
--Author page only lists up to 10 reviews.  Same with many other pages.
--Need to use defined( 'ABSPATH' ) OR exit; ???
-
-PRIORITY
-
-- Make sure save_post hook and use of wp_update_post (esp with post_name and title generation) is solid.
-
-
-
-
-
-
-- The gist of wp_insert_post: takes info given it, merges it into the info that currently exists, then sends it on to wp_insert_post.  It expects slashed data (unless sent an object) and it sends slashed data on to wp_insert_posts.  There are a few minor checks that get done, but not much.
-- wp_insert_post gets this info.  It has a set of defaults that get merged into the sent info in case anything is missing (but there shouldn't be),
+// useful for debugging when you cannont print to screen: error_log(print_r($tvariable_name, TRUE)).  Then run
+// "tail php_error.log" from the MAMP folder in the terminal.

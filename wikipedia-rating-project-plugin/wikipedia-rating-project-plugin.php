@@ -338,12 +338,12 @@ function wrp_create_wiki_disciplines_meta_box( $post ) {
 
 add_action( 'admin_notices', 'wrp_custom_notices' );
 
-// Checks for presence of the my_message query arg, and if present displays the message associated with it.
+// Checks for presence of the custom_message query arg, and if present displays the message associated with it.
 function wrp_custom_notices() {
-  if ( ! isset( $_GET['my_message'] ) ) {
+  if ( ! isset( $_GET['custom_message'] ) ) {
     return;
   } else {
-    $message_value = $_GET['my_message'];
+    $message_value = $_GET['custom_message'];
     $message_check = 'success';
 
     // If the message contains 'success', create a link to the rated Wikipedia page
@@ -555,7 +555,7 @@ function wrp_save_rating( $post_id ) {
 
     // Pass error message to user and remove default WP message
     $message = 'error9';
-    add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'my_message', $message, $loc ); } );
+    add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'custom_message', $message, $loc ); } );
     add_filter( 'redirect_post_location', function($loc) { return remove_query_arg( 'message', $loc ); } );
     
 
@@ -573,7 +573,7 @@ function wrp_save_rating( $post_id ) {
 
       // Pass error message to user and remove default WP message
       $message = 'error10';
-      add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'my_message', $message, $loc ); } );
+      add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'custom_message', $message, $loc ); } );
       add_filter( 'redirect_post_location', function($loc) { return remove_query_arg( 'message', $loc ); } );
 
 
@@ -623,7 +623,7 @@ function wrp_save_rating( $post_id ) {
           
           // Alert user of the specific error and remove default WP message
           $message = $wiki_info['message'];
-          add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'my_message', $message, $loc ); } );
+          add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'custom_message', $message, $loc ); } );
           add_filter( 'redirect_post_location', function($loc) { return remove_query_arg( 'message', $loc ); } );
 
 
@@ -667,7 +667,7 @@ function wrp_save_rating( $post_id ) {
           // Pass along message to user and remove default WP message (it is added before the save_post hook and often doesn't
           // match what has actually happened).
           $message = $wiki_info['message'];
-          add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'my_message', $message, $loc ); } );
+          add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'custom_message', $message, $loc ); } );
           add_filter( 'redirect_post_location', function($loc) { return remove_query_arg( 'message', $loc ); } );
         }
 
@@ -837,11 +837,11 @@ add_action( 'wp_dashboard_setup', 'wrp_clean_dashboard' );
 
 add_action( 'wp_dashboard_setup', 'wrp_add_dashboard_widget' );
 function wrp_add_dashboard_widget() {
-    wp_add_dashboard_widget(
-        'wrp_dashboard_widget', 
-        'Test Heading Title', 
-        'wrp_dashboard_widget'
-    );
+  wp_add_dashboard_widget(
+    'wrp_dashboard_widget', 
+    'Test Heading Title', 
+    'wrp_dashboard_widget'
+  );
 }
 
 function wrp_dashboard_widget() { ?>
