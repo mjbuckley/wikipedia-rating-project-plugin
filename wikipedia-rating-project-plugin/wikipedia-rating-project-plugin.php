@@ -3,7 +3,7 @@
 Plugin Name: Wikipedia Rating Project Plugin
 Plugin URI:
 Description: A plugin to rate Wikipedia pages in WordPress.
-Version: 0.1
+Version: 0.1.0
 Author: Michael Buckley
 Author URI: https://github.com/mjbuckley
 License: GPL2
@@ -833,13 +833,13 @@ function wrp_clean_dashboard() {
 add_action( 'wp_dashboard_setup', 'wrp_clean_dashboard' );
 
 
-// Test code for adding a dashboard widget
+// Code for adding a dashboard widget
 
 add_action( 'wp_dashboard_setup', 'wrp_add_dashboard_widget' );
 function wrp_add_dashboard_widget() {
   wp_add_dashboard_widget(
-    'wrp_dashboard_widget', 
-    'Test Heading Title', 
+    'wrp_dashboard_widget',
+    'Review information', 
     'wrp_dashboard_widget'
   );
 }
@@ -847,11 +847,31 @@ function wrp_add_dashboard_widget() {
 function wrp_dashboard_widget() { ?>
 
   <div>
-    <h2>Temporary Heading</h2>
-    <p>Please click on the "Reviews" button to see your current reviews or to add a new one.</p>
-    <p>We will be adding additional information in this location in the future</p>
+    <h2>How to submit a review</h2>
+    <p>Please click on the "Reviews" link located in the left hand column in order to add a new review.  On medium sized screens the link is represented by a thumbtack icon, and on small screens the link is located in the dropdown menu on the top left hand side of the screen.</p>
+    <p>We will be adding additional information in this location in the future.</p>
   </div>
 
 <?php }
+
+
+// Fixes problem where users with the reviewer role were being sent to thier profile page on login.  Leaves all other users untouched.
+// Consider adding to theme?
+function reviewer_login_redirect( $redirect_to, $request, $user ) {
+  //is there a user to check?
+  global $user;
+  if ( isset( $user->roles ) && is_array( $user->roles ) ) {
+    //check for admins
+    if ( in_array( 'wrp_reviewer', $user->roles ) ) {
+      // redirect them to the default place
+      return admin_url( 'index.php' );
+    } else {
+      return $redirect_to;
+    }
+  } else {
+    return $redirect_to;
+  }
+}
+add_filter( 'login_redirect', 'reviewer_login_redirect', 10, 3 );
 
 ?>
