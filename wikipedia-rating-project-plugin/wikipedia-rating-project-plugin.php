@@ -6,8 +6,8 @@ Description: A plugin to rate Wikipedia pages in WordPress.
 Version: 0.1.0
 Author: Michael Buckley
 Author URI: https://github.com/mjbuckley
-License: GPL2
-License URI: https://www.gnu.org/licenses/gpl-2.0.html
+License: GPLv2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
 */
 
 /*
@@ -22,7 +22,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
  
 You should have received a copy of the GNU General Public License
-along with Wikipedia Rating Project Plugin. If not, see {License URI}.
+along with Wikipedia Rating Project Plugin. If not, see
+https://www.gnu.org/licenses/gpl-2.0.html
 */
 
 
