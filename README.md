@@ -37,13 +37,14 @@ This is the repository for the Wikipedia Rating Project Plugin.  It is meant to 
 ## How reviews work
 
 The plugin creates a custom post type called reviews.  A review has several components: Review text, Wikipedia page title, lastrevid, rating, and disciplines.  If a required field is missing or invalid, the plugin will refuse to publish the review.  Instead, the review will be saved as a draft and an explanation of the problem will passed on to the user.
+
   * **Review:** A short review of the Wikipedia article.  There is no hard limit to a review's length, but it is meant to be relatively short, perhaps a hundred words. (Required)
   * **Page title:** The title of the Wikipedia page being reviewed.  It is important that this title be an exact match of the Wikipedia page being reviewed.  The plugin will attempt to fix capitalization, redirect, and others errors, but this is not always possible. (Required)
   * **Lastrevid:** Every revision of every Wikipedia page is given a unique identifying number called a lastrevid.  The plugin uses this number to link a review to the version of the Wikipedia article being reviewed.  If you know the lastrevid of the article that you are reviewing, you can enter it.  If you don't, leave this section blank and the plugin will grab the lastrevid of the current version of the article.  If you enter a lastrevid it must match the page title that you enter.  If not, a warning will be given and the review saved as a draft. (Optional.  You can leave it blank and one will be grabbed for you)
   * **Rating:** Ratings mirror the ratings that Wikipedia uses internally: A, B, C, Start, and Stub.  These ratings are coded into the plugin and will appear automatically for the users.  (Required)
   * **Disciplines:** You can optionally assign a page as belonging to one or more disciplines.  This is to allow visitors to the site to sort the reviews that they want to see by discipline.  (Optional)
 
-To read more about how to structure your reviews and how the rating terms work, see the project [home page](http://mjbuckley.github.io/wikipedia-rating-project).
+To read more about how to structure your reviews and how the rating terms work, see the [review guidelines](http://mjbuckley.github.io/wikipedia-rating-project/review-guidelines) on the Wikipedia Rating Project website.
 
 
 ## Known Issues
