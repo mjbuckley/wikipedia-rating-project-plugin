@@ -15,12 +15,12 @@ Wikipedia Rating Project Plugin is free software: you can redistribute it and/or
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 2 of the License, or
 any later version.
- 
+
 Wikipedia Rating Project Plugin is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
- 
+
 You should have received a copy of the GNU General Public License
 along with Wikipedia Rating Project Plugin. If not, see
 https://www.gnu.org/licenses/gpl-2.0.html
@@ -28,12 +28,13 @@ https://www.gnu.org/licenses/gpl-2.0.html
 
 
 require_once( plugin_dir_path( __FILE__ ) . 'includes/wrp_wiki_test.php' );
+require_once( plugin_dir_path( __FILE__ ) . 'includes/json_export.php' );
 
 
 // Create wrp_review post type and custom taxonomies when plugin activated so that flushing rewrite rules will take in to account
 // their existence.  Will still be included in an init hook later.
 function wrp_plugin_install() {
- 
+
   if ( ! current_user_can( 'activate_plugins' ) ) {
     return;
   }
@@ -70,7 +71,7 @@ register_deactivation_hook( __FILE__, 'wrp_plugin_deactivation' );
 
 // Register custom post type for reviews
 function wrp_create_review_post_type() {
-  $labels = array( 
+  $labels = array(
     'name' => 'Reviews',
     'singular_name' => 'Review',
     'add_new' => 'New Review',
@@ -135,7 +136,7 @@ function wrp_create_taxonomies() {
     'all_items' => 'All Wikipedia Article Titles',
     'parent_item' => 'Parent Wikipedia Article Title',
     'parent_item_colon' => 'Parent Wikipedia Article Title:',
-    'edit_item'  => 'Edit Wikipedia Article Title', 
+    'edit_item'  => 'Edit Wikipedia Article Title',
     'update_item' => 'Update Wikipedia Article Title',
     'add_new_item' => 'Add New Wikipedia Article Title',
     'new_item_name' => 'New Wikipedia Article Title',
@@ -160,7 +161,7 @@ function wrp_create_taxonomies() {
     'all_items' => 'All Ratings',
     'parent_item' => 'Parent Rating',
     'parent_item_colon' => 'Parent Rating:',
-    'edit_item'  => 'Edit Rating', 
+    'edit_item'  => 'Edit Rating',
     'update_item' => 'Update Rating',
     'add_new_item' => 'Add New Rating',
     'new_item_name' => 'New Rating',
@@ -174,7 +175,7 @@ function wrp_create_taxonomies() {
     'query_var' => true,
     'rewrite' => array( 'slug' => 'ratings' ),
     'show_admin_column' => true,
-    ) 
+    )
   );
 
   // wiki_disciplines taxonomy
@@ -185,7 +186,7 @@ function wrp_create_taxonomies() {
     'all_items' => 'All Disciplines',
     'parent_item' => 'Parent Discipline',
     'parent_item_colon' => 'Parent Discipline:',
-    'edit_item'  => 'Edit Discipline', 
+    'edit_item'  => 'Edit Discipline',
     'update_item' => 'Update Discipline',
     'add_new_item' => 'Add New Discipline',
     'new_item_name' => 'New Discipline',
@@ -370,7 +371,7 @@ function wrp_custom_notices() {
         case 'draft':
           $intro = '<p>Your review has been saved as a draft.</p>';
           break;
-        
+
         default:
           $intro = false;
           return;
@@ -434,7 +435,7 @@ function wrp_custom_notices() {
       default:
         $message = ''; // In case something unexpected somehow got through
         break;
-    } // End switch     
+    } // End switch
     ?>
 
 
@@ -558,7 +559,7 @@ function wrp_save_rating( $post_id ) {
     $message = 'error9';
     add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'custom_message', $message, $loc ); } );
     add_filter( 'redirect_post_location', function($loc) { return remove_query_arg( 'message', $loc ); } );
-    
+
 
 
   // wiki_rating and wiki_title are not empty, so continue.
@@ -612,16 +613,16 @@ function wrp_save_rating( $post_id ) {
         // Submitted values are new or changed.  Send to Wikipedia to see if they are valid/grab additional info.
         $wiki_info = wrp_wiki_test( $new_title_value, $new_lastrevid );
 
-        
+
         // Check if there was an error with wrp_wiki_test().
         if ( $wiki_info['error'] === true ) {
 
-          
+
           // The user submitted bogus info, or there was an error communicating with Wikipedia.  Roll post back to draft status.
           remove_action( 'save_post', 'wrp_save_rating' );
           wp_update_post( array( 'ID' => $post_id, 'post_status' => 'draft', 'post_name' => '', ) );
           add_action( 'save_post', 'wrp_save_rating' );
-          
+
           // Alert user of the specific error and remove default WP message
           $message = $wiki_info['message'];
           add_filter( 'redirect_post_location', function($loc) use ($message) { return add_query_arg( 'custom_message', $message, $loc ); } );
@@ -676,7 +677,7 @@ function wrp_save_rating( $post_id ) {
       // submitted values the same as saved values.  Save disciplines and rating.  May have been no change, but easier to just save than
       // check for chage, and no harm in resaving old values.  Could run a check in the future.
       } else {
-      
+
         $to_save_rating_value = sanitize_text_field( $_POST['wiki_rating'] );
         wp_set_object_terms( $post_id, $to_save_rating_value, 'wiki_rating' );
 
@@ -840,7 +841,7 @@ add_action( 'wp_dashboard_setup', 'wrp_add_dashboard_widget' );
 function wrp_add_dashboard_widget() {
   wp_add_dashboard_widget(
     'wrp_dashboard_widget',
-    'Review information', 
+    'Review information',
     'wrp_dashboard_widget'
   );
 }
@@ -851,6 +852,11 @@ function wrp_dashboard_widget() { ?>
     <h2>How to submit a review</h2>
     <p>Please click on the "Reviews" link located in the left hand column in order to add a new review.  On medium sized screens the link is represented by a thumbtack icon, and on small screens the link is located in the dropdown menu on the top left hand side of the screen.</p>
     <p>We will be adding additional information in this location in the future.</p>
+  </div>
+
+  <div>
+    <h2>Export your data</h2>
+    <p><a href="<?php echo esc_url( home_url( '/json-export' ) ); ?>">Click here</a> to download all of your reviews as a JSON file</p>
   </div>
 
 <?php }
