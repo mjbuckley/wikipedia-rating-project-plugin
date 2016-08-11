@@ -3,7 +3,7 @@
 Plugin Name: Wikipedia Rating Project Plugin
 Plugin URI:
 Description: A plugin to rate Wikipedia pages in WordPress.
-Version: 0.1.0
+Version: 0.1.3
 Author: Michael Buckley
 Author URI: https://github.com/mjbuckley
 License: GPLv2 or later
