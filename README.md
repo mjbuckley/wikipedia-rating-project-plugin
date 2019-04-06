@@ -8,7 +8,7 @@ This is the repository for the Wikipedia Rating Project Plugin.  It is meant to 
 1. A working WordPress installation.
   * [Guide to installing WordPress](https://codex.wordpress.org/Installing_WordPress)
 2. An admin username and password for your WordPress site.
-3. Your server should be running PHP version 5.5 or 5.6: The plugin was developed and tested on PHP version 5.5 and 5.6.  It is possible that it will work on versions 5.3 and 5.4, but this is untested.  It will definitely NOT work on versions 5.2 and older.
+3. Your server should be running PHP version 5.6 or greater: The plugin was developed and tested on PHP version 5.6.  It is possible that it will work on some older versions, but this is untested.  It will definitely NOT work on versions 5.2 and older.
 
 
 ### Installation
@@ -21,6 +21,7 @@ This is the repository for the Wikipedia Rating Project Plugin.  It is meant to 
 6. Click on "Choose File."  Navigate to and then select the .zip plugin file that you just downloaded.
 7. Click on the "Install Now" button.
 8. Once the plugin installs successfully, click on the "Activate Plugin" link.
+9. Install the WordPress [Classic Editor](https://wordpress.org/plugins/classic-editor/) plugin, and turn it on for all users in all situations. See the Know Issues section below for an explanation, and view the link for additional information on the plugin.
 
 
 ### Setup
@@ -49,7 +50,9 @@ To read more about the suggested structure for reviews and how the rating terms 
 
 ## Known Issues
 
-Every WordPress post is given a unique post slug.  However, if a post is deleted, that slug is made available for reuse again.  For example, suppose that a review with a post slug of Middle-Ages-3 is deleted.  The next time someone reviews the Middle Ages Wikipedia page, that review will take on the old post slug of Middle-Ages-3.  Two live reviews will never have the same post slug, but it is possible that a review could have the same slug as a deleted review.  This is an issue with how WordPress assigns post slugs, but we are working on a solution for this in a future release.
+1. This plugin was developed before WordPress introduced the new Gutenberg block editor, and some parts of the plugin may not work when using the new editor. A simple fix is to install and use the WordPress [Classic Editor](https://wordpress.org/plugins/classic-editor/) plugin. This restores the editor that was in place when the plugin was made, and it ensures that the plugin works properly. In addition to installing the Classic Editor, be sure it is activated and turned on for all users in all situations. See the official WordPress Classic Editor documentation for more information on plugin setup.
+
+2. Every WordPress post is given a unique post slug.  However, if a post is deleted, that slug is made available for reuse again.  For example, suppose that a review with a post slug of Middle-Ages-3 is deleted.  The next time someone reviews the Middle Ages Wikipedia page, that review will take on the old post slug of Middle-Ages-3.  Two live reviews will never have the same post slug, but it is possible that a review could have the same slug as a deleted review.  This is an issue with how WordPress assigns post slugs, but we are working on a solution for this in a future release.
 
 
 ### Notes
